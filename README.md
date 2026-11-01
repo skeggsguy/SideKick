@@ -1,50 +1,27 @@
 # Sidekick
 
-**Your own AI assistant, on your own Mac. It works while you sleep, remembers what matters to you,
-and asks your phone before it sends, books or deletes anything.**
+**Your own agentic AI assistant, on your own Mac. It works while you sleep, remembers what matters to you, and asks you before it sends, books or deletes anything.**
 
-Sidekick is a personal AI assistant that does real jobs, not just chat. Every week it combs the
-property sites, reads the new listings properly and leaves a short report. It plans a holiday, keeps
-the itinerary in your calendar and watches your inbox for changes. It finds a restaurant table and
-drives the booking site in a real Chrome. It reads a stack of contracts and statements and tells you
-what differs. And it says good morning by name.
+Sidekick is a personal AI assistant that does real jobs, not just chat.
 
-Talk to it from an iPad, an iPhone or a terminal, or leave it alone. A schedule or a new email wakes
-it, and it gets on with the job: web search, a real browser, Gmail and Calendar, files, maps and
-photos. Every tool call passes a policy gate. Reading runs on its own; anything that sends, books or
-deletes waits for a tap on your phone. It remembers what it learns about you, so it gets more useful
-the more you use it.
+Manage a property search, holiday trip, keep on top of subscriptions, book restaurants, track your Gmail, or keep up to date with your favourite Reddit sub.
 
-It runs on your Mac, on a local model: Qwen3.8-Flash-Next on
-[Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd). Sidekick loads tools only when a task
-needs them and keeps its prompt steady, so a local model can carry long jobs. My last month of it
-cost $0.68 in cloud fees. When a turn needs more, Claude Sonnet is one pick away in the chat, and
-it's the one I recommend.
+Talk to it from an iPad, an iPhone or a terminal, or leave it alone. A schedule or a new email wakes it, and it gets on with the job.
+
+It remembers what it learns about you, so it gets more useful the more you use it.
+
+It’s designed to run efficiently even with local models. Context efficiency and progressive disclosure of tools are baked in.
+
+For local I recommend a model that's good at long agentic workflows, like Qwen3.8-Flash-Next on
+[Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd).
+
+If local's not your thing, it's easy to hook up a cloud model: I recommend Claude Sonnet.
 
 It's the assistant I run every day, published as it is. It was built almost entirely with
 [Claude Code](https://claude.com/claude-code), and the files that built it are in the repo
 ([How it's built](#how-its-built)).
 
 <p align="center"><img src="assets/how-it-works.svg" width="760" alt="How Sidekick works: you, a schedule or a watcher wakes it; the agent loop plans with a local model, every tool call passes the policy gate, and anything that sends, books or deletes waits for your approval; one model per job; everything is remembered in one SQLite file"></p>
-
-## Headline numbers
-
-Five months on my Mac mini, 12 June to 1 November 2026. Every run and every tool call is logged as it
-happens; `uv run harness runs summary` shows yours.
-
-| | |
-|---|---|
-| **Works while you sleep** | **672** background runs, started by a schedule, an email or a task it handed off, on 142 of 143 days; 230 of them between 10 pm and 7 am |
-| **Gets on with it** | **598 of 623** finished background runs needed nothing from me |
-| **Long jobs** | **1 h 35 min** and 50 tool calls in the longest scheduled run that finished; 80 min and 52 calls on the local model |
-| **Asks before it acts** | **0** sends, invites, browser tasks or deletes on its own: 123 asked first, 113 approved, 10 refused |
-| **Costs almost nothing** | **$0.68** in cloud fees since 2 October, across 641 runs; the Mac read 85M tokens at no charge |
-| **Remembers you** | **107** facts and 1,106 conversation summaries; 99 of those facts were pulled into a conversation in the last month |
-| **Every call gated** | **9,753** tool calls through the policy gate: 8,619 ran on their own, 1,064 I approved, 70 I refused |
-
-"Asks before it acts" counts every send, calendar invite, browser task and delete. A browser task is
-approved once, for one site and a set number of actions; inside it, clicks and typing run on their
-own, and anything off that site or past the budget asks again.
 
 ## What it does
 
@@ -127,18 +104,22 @@ decision goes into an append-only audit log. Secrets stay in `.env`. The rules l
 
 ## Dogfooded on
 
-Real jobs, run for months:
+Real jobs, run every day for five months (June to November 2026): about 2,400 runs, 670 of them in
+the background with nobody watching, 1,200 web searches, 1,400 pages read and 9,700 tool calls
+through the policy gate.
 
 - **A weekly property watch.** It searches the listing sites, reads the new listings properly
   (floor plans, prices, what changed since last week) and sends a short report. A reply to a listing
-  waits for my OK.
+  waits for my OK. 31 runs so far.
 - **Restaurant bookings.** It finds a table and drives the booking site in Chrome. I approve the
   task on the phone first: that one site, a set number of clicks.
 - **Holiday planning and management.** It researches options, builds the itinerary, keeps it in the
   calendar, and watches the inbox for changes along the way.
 - **High-volume document work.** Contracts, statements and PDFs, read and compared in batches.
-- **Every day:** the morning briefing, email triage that only pings for what matters, and the weekly
-  cost report.
+- **Subscriptions.** A reminder before each month's renewals, and a quarterly review of what's
+  still worth paying for.
+- **Every day:** the morning briefing (147 so far), email triage that only pings for what matters
+  (362 runs started by an email worth a look), and the weekly cost report.
 
 ## Choose your models
 
@@ -154,19 +135,10 @@ there, Sidekick says so.
 
 ### What it costs
 
-For its first four months Sidekick ran on Claude Sonnet; since 2 October, on the local model. From the
-runs table on my Mac mini, where every run is timed, counted and costed as it happens:
-
-| | Cloud era (12 Jun – 1 Oct) | Local era (2 Oct – 1 Nov) |
-|---|---|---|
-| **Runs** | 1,765 (121 of them early local trials) | 641 |
-| **Model** | Claude Sonnet 5 and 4.6 | local Qwen for 98% of runs; Sonnet for the 11 turns I picked it |
-| **Cloud spend** | **$123** ($14–59 a month) | **$0.68** |
-| **Per run** | about $0.075 | nothing but electricity |
-
-**As a guide to cloud costs:** at the cloud era's rate, the 630 local runs since 2 October would have
-cost about $47 on Sonnet. That's probably a floor: the Mac read twice as many input tokens in October
-(82M) as in September (41M), and tokens are no longer billed.
+| | Cost |
+|---|---|
+| **Local model** | **$0**: it runs on your Mac |
+| **Cloud (Claude Sonnet)** | about **US$10–20 a month**, depending on how much you use it |
 
 ## Quick start
 

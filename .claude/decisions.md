@@ -10,7 +10,8 @@ Format: `YYYY-MM-DD — decision — why`
 - 2026-11-01 — README is a **runnable project that is also a showcase** (Flash-Next structure: promise line, measured
   headline numbers, feature sections, quick start, settings table) — rejected keeping the "published personal system,
   not a product" stance: the system is now runnable, and one honest "what it really takes" paragraph covers the cost.
-- 2026-11-01 — README headline numbers are **real usage from the runs table** (cloud era vs local era, spend as a
+- 2026-11-01 — SUPERSEDED same day (owner's call: a headline-numbers section read as a stats dump; volume counts now live in
+  Dogfooded on, and costs are a simple $0 local / ~US$10–20 a month Sonnet guide). Was: README headline numbers are **real usage from the runs table** (cloud era vs local era, spend as a
   guide) — rejected approval-prediction accuracy: 82.3% loses to the 95.4% always-approve baseline on the same 570 rows.
 - 2026-11-01 — The README names the **concrete dogfooding workflows** (property watch, restaurant booking, holidays,
   document batches) — rejected generic phrasing: owner's call, not sensitive, and it brings the project to life.
