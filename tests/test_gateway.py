@@ -103,10 +103,12 @@ async def client(db):
 async def test_health(client):
     # `sonnet` gates the Sonnet chat entry; the test Gateway has no key.
     resp = await client.get("/api/health")
-    assert resp.json() == {"ok": True, "sonnet": False}
+    assert resp.json() == {"ok": True, "sonnet": False, "name": None}
     client.gw.sonnet_available = True
+    client.gw.user_name = "Sam"
     resp = await client.get("/api/health")
     assert resp.json()["sonnet"] is True
+    assert resp.json()["name"] == "Sam"  # the web UI greeting's HARNESS_USER_NAME
 
 
 async def test_chat_sonnet_gated(client):

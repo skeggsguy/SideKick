@@ -2,134 +2,291 @@
 
 # Sidekick
 
-A proactive, single-user AI agent: it chats when you want it to, and acts for you when you
-don't — morning briefings, reminders, email triage, calendar awareness — reachable from a
-terminal and from a phone or tablet. It runs as one asyncio daemon on a machine you own.
+**A proactive AI sidekick on your own Mac: a local model does the work, and the cloud only when you
+ask for it.**
 
 <br clear="left">
 
-**This is a published personal system, not a product.** It is the assistant I actually run,
-snapshotted into a public repo because the design is more interesting in the open than in a
-private one. There is no five-minute quickstart, no hosted version, and no support. Read
-["What running this actually takes"](#what-running-this-actually-takes) before you decide to
-try it — the honest answer is that it wants a machine, not an afternoon.
+Sidekick is one daemon on a Mac mini. You chat with it from an iPad, an iPhone or a terminal, and it
+also works when you're not there. A schedule or a new email wakes it up, it does the job with real
+tools (web search, a real Chrome, Gmail and Calendar, files, maps), and it asks your phone before
+anything that sends, books or deletes. It remembers what it learns about you, so it gets more useful
+the more you use it.
 
-It is also built almost entirely with [Claude Code](https://claude.com/claude-code), and the
-repo is deliberately open about that: `CLAUDE.md`, `.claude/skills/`, and the append-only
-`.claude/learnings.md` are the actual working files, not a tidied-up retrospective. (The
-multi-agent definitions those files refer to live in local Claude Code config and are not
-part of this snapshot.) If you are interested in what long-running agent-assisted
-development looks like in practice, that is probably the most useful thing here.
+Since 2 October 2026 a local model, Qwen3.8-Flash-Next running on
+[Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd), has done nearly all of that work on
+the Mac itself. For the four months before that it ran on Claude Sonnet, so the numbers below show
+both: what it cost in the cloud, and what it costs now.
 
-MIT licensed. See [`LICENSE`](LICENSE).
+It is the assistant I run every day, published as it is. It was built almost entirely with
+[Claude Code](https://claude.com/claude-code), and the working files that built it are part of the
+repo ([How it's built](#how-its-built)).
 
-## Status
+<p align="center"><img src="assets/how-it-works.svg" width="760" alt="How Sidekick works: you, a schedule or a watcher wakes it; the agent loop plans with a local model, every tool call passes the policy gate, and anything that sends, books or deletes waits for your approval; one model per job; everything is remembered in one SQLite file"></p>
 
-All phases of [`docs/PLAN-v2.md`](docs/PLAN-v2.md) are built:
-the event-driven daemon, Google Workspace integration, the web UI with deferred approvals,
-long-term memory, the Gmail watcher with local triage, tool/context scaling, and the P7
-polish pass (weekly cost report, daily DB backups, offline + live eval tiers). The
-Microsoft 365 connector is built but paused (disabled in `mcp/servers.toml`). Setup guides
-live in `docs/` (`p4-setup.md` … `p7-setup.md`, plus one per integration).
+## Headline numbers
 
-And as of 2026-10-02, **the harness runs on my hardware**: a local Qwen model drives every
-chat and background run, the on-device Apple Foundation Model handles the small utility
-jobs, and no API key sits on the critical path of an ordinary day. Claude Sonnet survives
-as a deliberate, per-message opt-in for the turns a 64 GB Mac mini can't carry — one cloud
-door, opened by choice, with everything else local.
+From the runs table on my Mac mini, 12 June to 1 November 2026. Every run is timed, counted and
+costed as it happens; `uv run harness runs summary` shows yours.
 
-## High-level design (v2)
+| | Cloud era (12 Jun – 1 Oct) | Local era (2 Oct – 1 Nov) |
+|---|---|---|
+| **Runs** | 1,765 (121 of them early local trials) | 641 |
+| **Model** | Claude Sonnet 5 and 4.6 | local Qwen for 98% of runs; Sonnet for the 11 turns I picked it |
+| **Cloud spend** | **$123** ($14–59 a month) | **$0.68** |
+| **Per run** | about $0.075 | nothing but electricity |
 
-```
-   iPad PWA / phone ──┐                    terminal REPL ──┐
-   (tailnet, SSE)     ▼                                   ▼
-              ┌────────────────────────────────────────────────┐
-              │                     agentd                     │
-              │  web UI · event bus · orchestrator · scheduler │
-              │  watchers (gmail) · deferred approvals · push  │
-              └───────────┬──────────────────────┬─────────────┘
-                          ▼                      ▼
-                 ┌────────────────┐     ┌─────────────────┐
-                 │   agent loop   │     │  SQLite (WAL)   │
-                 │ policy engine  │     │ sessions · runs │
-                 │ tools (MCP)    │     │ audit · memory  │
-                 └───────┬────────┘     └─────────────────┘
-                         │  one provider per job, per turn
-        ┌────────────────┼──────────────────────┐
-        ▼                ▼                      ▼
-  local Qwen        on-device Apple FM     Claude Sonnet 5
-  main + compaction triage · titles ·      the one cloud door,
-  (llama.cpp fork)  predict · extract      opened per chat
-```
+**As a guide to cloud costs:** at the cloud era's rate, the 630 local runs since 2 October would have
+cost about $47 on Sonnet. That's probably a floor: the Mac read twice as many input tokens in October
+(82M) as in September (41M), and tokens are no longer billed.
 
-- **Event-driven core:** every invocation — a typed message, a cron firing, a "new email"
-  watcher hit, an approval decision — is an event into one orchestrator. Proactivity is the
-  same code path as chat, not a bolt-on.
-- **Durable state first:** one SQLite file (WAL) holds sessions, runs, audit log, approvals,
-  triggers, and memory (vectors via `sqlite-vec`).
-- **Memory:** persistent facts/preferences + episodic summaries, extracted post-turn by
-  the on-device Apple FM and injected per run; keyword recall by default, vector recall if
-  you stand up an embeddings server (Ollama `nomic-embed-text`).
-- **Models, tiered, local-first:** the main agent and compaction run on a large local
-  model served over an Anthropic-compatible API (`HARNESS_LOCAL_URL` — today Qwen
-  3.8-Flash-Next on a llama.cpp fork); the on-device Apple Foundation Model does the
-  narrow utility jobs (email triage, approval prediction, chat titles, memory extraction);
-  **Claude Sonnet 5 is an opt-in chat model** for the turns the local lane can't carry —
-  picked per message in the UI, never a silent fallback.
-- **Integrations via MCP:** its own Google Workspace MCP server first (Gmail, **Calendar**,
-  Drive, Sheets, Docs, **Tasks**) with official APIs + OAuth; Microsoft 365 behind the same
-  adapter.
-- **Interfaces:** a CLI REPL plus a FastAPI web UI served over a private tailnet (installable
-  PWA with Web Push for briefings and approvals).
-- **Safety:** action classes (read-only / mutating / outward / destructive) × per-run
-  autonomy levels (interactive / supervised / restricted); **deferred approvals** let
-  background runs pause and wait for a ✅ from a phone; a Docker sandbox for model-written
-  code; an append-only audit log.
-- **Toolchain:** Python 3.12 via `uv`, asyncio end-to-end, streaming + prompt caching,
-  per-run cost tracking.
+| Since June | |
+|---|---|
+| **Runs** | 2,406, of which 672 ran in the background (a schedule or an email started them) |
+| **Days with background work** | 140 |
+| **Longest unattended scheduled run** | 4 h 20 min |
+| **Tool calls through the policy gate** | 9,753: 8,619 ran on their own, 1,064 I approved, 70 I denied |
+| **Memory** | 107 facts about me and 1,106 episode summaries |
+| **Offline tests** | over 1,500, with no network and no API keys |
 
-## What running this actually takes
+## What it does
 
-The REPL starts with nothing but a local model server (no API key at all):
+### Chat and search
 
-```bash
+Ask anything, from the iPad or iPhone (an installable web app with push notifications), or from a
+terminal. It answers with live web search ([Brave](https://brave.com/search/api/)), reads pages, and
+falls back to a real Chrome when a site needs JavaScript. It reads and writes your Gmail, Calendar,
+Drive and Tasks, and it can see photos you attach. Dictation runs locally with Whisper, so your voice
+never leaves the Mac. Weather, maps, RSS, Hacker News and Reddit are built in.
+
+### A memory that grows as you use it
+
+After each conversation, an on-device model picks out what's worth keeping: preferences, people,
+facts about your life, and what worked last time on a hard task. Each new chat starts with what's
+relevant, and the agent can search the rest (`recall`). Vector search runs locally through Ollama;
+without it, recall falls back to keyword search. A clean-up job proposes what to merge or forget, and
+changes nothing until you approve.
+
+### Long-running jobs that ask before they act
+
+A scheduled job is a written brief (a playbook) plus a schedule and the tools it may use. It runs on
+its own: it can search, read and compare for hours. When it wants to do something that leaves the
+Mac, it stops and asks.
+
+<p align="center"><img src="assets/approval-flow.svg" width="760" alt="Approve from your phone: a scheduled run searches and reads on its own, pauses when it wants to send a reply to a listing, pushes the approval to your phone, and sends only after you approve; outward actions wait up to six hours and no answer means no"></p>
+
+The run waits while you decide (up to 6 hours for anything outward), then carries on with your
+answer.
+
+### A real browser
+
+Some sites only work in a browser. `browser_fetch` reads them through a persistent Chrome, and
+`browser_delegate` hands a task to a browser sub-agent that clicks, types and fills forms. Every click
+names the element and the site in the approval it asks for. All of its traffic goes through a local
+egress proxy that refuses private network addresses.
+
+### Pictures
+
+Attach a photo in chat and the local model looks at it itself: Qwen3.8-Flash-Next reads images
+natively. A photo counts as untrusted data like any web page: text in it is never an instruction.
+
+### Schedules
+
+Cron schedules, set up in the web app or simply by asking ("every weekday at 7, brief me"). The
+built-in playbooks: a morning briefing (calendar, email, tasks, news), email triage, a weekly cost
+report, memory clean-up, and a check of how well approval prediction is doing. If the Mac was asleep,
+missed runs catch up when it wakes.
+
+### Built for a local model
+
+A local model has a limited context and reads every token of the prompt itself, so Sidekick spends
+tokens carefully:
+
+- **Tools on demand (progressive disclosure).** The agent starts with the everyday tools, and the
+  rest (about 40 Google Workspace tools, files, the browser, schedules) sit in groups it loads only
+  when a task needs them. Without that, every tool definition would ride along in every request.
+- **A prompt that stays the same,** so the model server can reuse its cache of the prompt's opening
+  instead of reading it again on every turn.
+- **Compaction.** When a conversation grows long, the older middle is summarised and the recent turns
+  stay word for word. The summary is saved as a checkpoint, so a restart carries on from it.
+
+### A security model you can read
+
+Every tool declares what kind of action it is, and every run has an autonomy level. The policy gate
+combines the two:
+
+| Action class | Example | What happens |
+|---|---|---|
+| Read-only | search, read an email | runs at once |
+| Changes something local | edit a file in the work area | allowlist, or ask you |
+| Outward | send an email, book a table | always asks you; can never be allowlisted |
+| Destructive | delete, trash | always asks you, and is refused outright in unattended runs |
+
+On top of that: anything Sidekick reads (emails, web pages, files, photos) is data, never
+instructions, and never reaches the system prompt. Model-written code runs in a Docker sandbox. Every
+decision goes into an append-only audit log. Secrets stay in `.env`. The rules live in one file:
+[`src/harness/core/policy.py`](src/harness/core/policy.py).
+
+## Dogfooded on
+
+Real jobs, run for months:
+
+- **A weekly property watch.** It searches the listing sites, reads the new listings properly
+  (floor plans, prices, what changed since last week) and sends a short report. A reply to a listing
+  waits for my OK.
+- **Restaurant bookings.** It finds a table and drives the booking site in Chrome, and the final
+  click waits for my approval on the phone.
+- **Holiday planning and management.** It researches options, builds the itinerary, keeps it in the
+  calendar, and watches the inbox for changes along the way.
+- **High-volume document work.** Contracts, statements and PDFs, read and compared in batches.
+- **Every day:** the morning briefing, email triage that only pings for what matters, and the weekly
+  cost report.
+
+## Choose your models
+
+Each job has its own model, chosen in your settings. There is no silent fallback: if a model isn't
+there, Sidekick says so.
+
+| Job | What I use | What else works | Recommendation |
+|---|---|---|---|
+| **The main agent** (chat, background runs) and compaction | Qwen3.8-Flash-Next, local, on [Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd) | Any server that speaks Anthropic's `/v1/messages`, named by `HARNESS_LOCAL_URL` | Flash-Next SSD on a 64 GB Mac: it runs a 111 GB model at about 29 tokens/s |
+| **The helpers:** email triage, chat titles, approval prediction, memory extraction | Apple's on-device Foundation Model (macOS 26+) | Turn it off with `HARNESS_APPLE_FM=off` | Leave it on: free, private and fast |
+| **Memory search** | Ollama with `nomic-embed-text` | Nothing: recall falls back to keywords | Ollama, if you have it |
+| **The hard turns** | Claude Sonnet 5, picked per message | None | **Recommended:** add `ANTHROPIC_API_KEY` and a "Sonnet" choice appears in the chat's model picker |
+
+## Quick start
+
+**What you need:** an Apple Silicon Mac on macOS 26 or later, [uv](https://docs.astral.sh/uv/), and a
+local model server. A Mac that stays on makes it proactive.
+
+**1. Install it**
+
+```sh
+git clone https://github.com/skeggsguy/SideKick
+cd SideKick
 uv sync
-echo 'HARNESS_LOCAL_URL=http://127.0.0.1:8080' > .env
+```
+
+**2. Start a local model.** Any server with an Anthropic-style `/v1/messages` endpoint works. On a
+64 GB Mac, follow [Flash-Next SSD's quick start](https://github.com/skeggsguy/Flash-next-ssd#quick-start);
+it serves on `http://127.0.0.1:8080`.
+
+**3. Your settings**
+
+```sh
+cp .env.example .env
+```
+
+Set `HARNESS_LOCAL_URL=http://127.0.0.1:8080` and, if you like, `HARNESS_USER_NAME` (it greets you
+by it). Everything else is optional ([Your settings](#your-settings)).
+
+**4. Talk to it in the terminal**
+
+```sh
 uv run harness
 ```
 
-Any Anthropic-compatible server works — a llama.cpp build exposing `/v1/messages`, or an
-OpenAI-proxying gateway. The daemon treats `HARNESS_LOCAL_URL` as a hard requirement and
-exits with guidance without it; the local model is the main agent, not a fallback tier.
+**5. Run the daemon and open the app**
 
-Every integration below is genuinely optional — absent, the corresponding tools simply
-don't appear in the catalog. But the *system* — the thing that wakes up and does something
-useful before you ask — is the sum of them, and each is real setup:
+```sh
+uv run agentd
+```
+
+Open <http://127.0.0.1:8787>. The daemon adds the scheduler, the email watcher, the web app and push
+notifications.
+
+**6. Reach it from your phone.** Install [Tailscale](https://tailscale.com) on the Mac and the
+phone, then run `tailscale serve --bg 8787` on the Mac. Open the address it prints on the phone and
+add it to the Home Screen (Share, then Add to Home Screen) to get the app and its notifications.
+
+### What the whole system takes
+
+Each integration is optional: leave it out, and its tools simply don't appear. But the part that
+wakes up and does something useful before you ask is the sum of them, and each one is real setup.
 
 | For | You need |
 |---|---|
-| The daemon, scheduler, web UI | A machine that stays on. Runs on a **Mac mini**; keeping the daemon supervised (launchd) is still on the to-do list. It started life on WSL2 under Windows |
-| Reaching the UI from a phone | **Tailscale**, plus `tailscale serve` on the host. There is no public ingress and no auth story beyond the tailnet and a bearer token |
-| Gmail, Calendar, Drive, Tasks | A **Google Cloud project** with OAuth consent configured and a **Web application** OAuth client — a genuine half-hour of console clicking (`docs/google-oauth-setup.md`) |
-| Memory embeddings (optional) | An OpenAI-compatible embeddings server (e.g. Ollama with `nomic-embed-text`). Without it, recall is keyword-only |
-| A local main model (**required**) | An Anthropic-compatible server (e.g. a llama.cpp build with `/v1/messages`) and `HARNESS_LOCAL_URL` |
-| Email triage, approval prediction, chat titles, memory extraction | Nothing you install — the **on-device Apple Foundation Model** (`apple-fm-sdk`, macOS 26+ on Apple Silicon; `HARNESS_APPLE_FM=off` to disable) |
-| The opt-in Sonnet chat model | An **`ANTHROPIC_API_KEY`**; without one the Sonnet picker option stays hidden |
-| `sandbox_run` | **Docker** (OrbStack on macOS), plus a pre-baked image built once |
-| `browser_fetch` / `browser_delegate` | A persistent real **Chrome** driven over CDP, behind a local egress proxy |
-| Web Push notifications | HTTPS (the tailnet cert), a VAPID keypair the daemon generates, and a browser that will install the PWA |
-| Outlook mail/calendar | An **Azure app registration** (disabled by default) |
+| Gmail, Calendar, Drive, Tasks | A Google Cloud project with an OAuth client: about half an hour of console clicking ([guide](docs/google-oauth-setup.md)) |
+| Web search | A Brave Search API key (`BRAVE_SEARCH_API_KEY`) |
+| Maps | A Google Maps API key ([guide](docs/maps-setup.md)) |
+| Memory search | Ollama with `nomic-embed-text` ([guide](docs/p4-setup.md)) |
+| `sandbox_run` | Docker (OrbStack on macOS) and a one-time image build ([guide](docs/sandbox-setup.md)) |
+| The browser tools | Chrome and the egress proxy, both as login agents ([guide](docs/browser-fallback-setup.md)) |
+| Dictation | faster-whisper ([guide](docs/stt-setup.md)) |
+| Push notifications | HTTPS from `tailscale serve`, and the web app added to the Home Screen |
+| Outlook mail and calendar | An Azure app registration; off by default ([guide](docs/ms365-setup.md)) |
 
-Costs are real too — even when the money is electricity: every run is timed, tokenized,
-and costed into the runs table. `uv run harness runs summary` exists because that mattered,
-and it is what proved the local lane was worth building.
+## Your settings
 
-## Where to look
+They live in `.env`, which git ignores. [`.env.example`](.env.example) lists every one with notes;
+these are the ones you're most likely to set.
 
-- [`docs/PLAN-v2.md`](docs/PLAN-v2.md) — the canonical design, phase by phase
-- [`CLAUDE.md`](CLAUDE.md) — the layout map, conventions, and safety tiers
-- [`.claude/learnings.md`](.claude/learnings.md) — an append-only log of things that went
-  wrong and why; the least polished and most useful file in the repo
-- [`.claude/gotchas.md`](.claude/gotchas.md) — the traps, each pinned by a test
-- [`src/harness/core/policy.py`](src/harness/core/policy.py) — the safety model, if you only
-  read one source file
+| Setting | Default | What it is |
+|---|---|---|
+| `HARNESS_LOCAL_URL` | none (required) | The local model server, e.g. `http://127.0.0.1:8080` |
+| `HARNESS_USER_NAME` | none | Your name: the app greets you with it ("Buenos días, Sam") and the agent knows who it's talking to |
+| `ANTHROPIC_API_KEY` | none | Turns on the opt-in Sonnet choice in chat. Nothing else uses it |
+| `BRAVE_SEARCH_API_KEY` | none | Web search |
+| `GOOGLE_MAPS_API_KEY` | none | Maps and routes |
+| `HARNESS_APPLE_FM` | on | `off` turns off the on-device helper model |
+| `HARNESS_TOOL_GROUPS` | on | Tools on demand ([Built for a local model](#built-for-a-local-model)) |
+| `HARNESS_TZ` | the phone's time zone | Overrides the time zone for scheduled runs |
+| `HARNESS_PUBLIC_URL` | none | Your tailnet address, for the in-app "Connect Google" flow |
+| `HARNESS_DB_PATH` | `~/.local/share/harness/harness.db` | Keep it on the local disk, never iCloud or a network drive |
+
+## Start at login
+
+[`scripts/launchd/`](scripts/launchd/) holds the login agents I use: the daemon, the egress proxy and
+Chrome. launchd doesn't expand `~`, so replace `/Users/YOU` with your home folder, copy the plists to
+`~/Library/LaunchAgents/`, and load each one:
+
+```sh
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.harness.agentd.plist
+```
+
+The daemon's agent waits until the Mac has been up for 6 minutes, so the model server and macOS
+settle first, and it stands aside if something is already on port 8787. Logs go to
+`~/Library/Logs/harness/`. Like any GPU work on a Mac, the model server needs you logged in, so for a
+Mac that comes back by itself after a power cut, turn on automatic login and
+`sudo pmset -a autorestart 1`.
+
+## How it's built
+
+Almost all of it was written with [Claude Code](https://claude.com/claude-code), and the files that
+steer it are in the repo as they are, not tidied up afterwards:
+
+- [`CLAUDE.md`](CLAUDE.md): the layout, the conventions and the safety rules Claude Code works to.
+- [`.claude/skills/`](.claude/skills/): step-by-step guides for repeated work (a new tool, a new
+  playbook, a web UI change, a release check).
+- [`.claude/decisions.md`](.claude/decisions.md): why A over B, one short entry per choice.
+- [`.claude/gotchas.md`](.claude/gotchas.md): the traps that no code owns.
+- [`CHRONICLE.md`](CHRONICLE.md): the story so far, level by level.
+
+If you're curious what months of agent-assisted development look like in practice, that's probably
+the most useful thing here.
+
+## Guides
+
+- [Design](docs/PLAN-v2.md): the canonical design, phase by phase.
+- [Adding a tool](docs/adding-a-tool.md): registration, safety class, tests.
+- [Google OAuth](docs/google-oauth-setup.md), [Maps](docs/maps-setup.md),
+  [Browser](docs/browser-fallback-setup.md), [Sandbox](docs/sandbox-setup.md),
+  [Dictation](docs/stt-setup.md), [Outlook](docs/ms365-setup.md): one guide per integration.
+- [Memory](docs/p4-setup.md), [Email watcher](docs/p5-setup.md),
+  [Backups, costs and evals](docs/p7-setup.md).
+
+## Credits
+
+- The Qwen team for Qwen3.8-Flash-Next, and [Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd),
+  the llama.cpp fork that runs it on a 64 GB Mac, with everyone credited there.
+- Apple's [Foundation Models](https://developer.apple.com/documentation/foundationmodels) for the
+  on-device helpers.
+- [Claude](https://www.anthropic.com/claude) for the opt-in cloud turns, and Claude Code for building
+  nearly all of it.
+- [sqlite-vec](https://github.com/asg017/sqlite-vec), the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk),
+  [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Ollama](https://ollama.com),
+  [marked](https://github.com/markedjs/marked) and [DOMPurify](https://github.com/cure53/DOMPurify).
+
+## Licence
+
+MIT: see [LICENSE](LICENSE).

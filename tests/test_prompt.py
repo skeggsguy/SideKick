@@ -5,7 +5,7 @@ prompt-trim option A). It rides every request on the local lane's prefix."""
 from __future__ import annotations
 
 from harness.core.paths import SCRATCH_DIR
-from harness.prompt import SYSTEM_PROMPT
+from harness.prompt import SYSTEM_PROMPT, system_prompt, user_name
 from harness.tools.files import EditFileTool
 
 
@@ -42,3 +42,21 @@ def test_edit_file_states_the_absolute_file_area():
     """The file area's real path now lives only in edit_file's description
     (the base prompt's FILE AREA paragraph is gone)."""
     assert str(SCRATCH_DIR) in EditFileTool.description
+
+
+def test_user_name_line_only_when_set():
+    """HARNESS_USER_NAME adds one line after the rules; unset leaves the
+    prompt byte-identical, so the cached local prefix is unchanged."""
+    assert system_prompt(None) == SYSTEM_PROMPT
+    assert system_prompt("Sam") == SYSTEM_PROMPT + "\n\nThe user's name is Sam."
+
+
+def test_user_name_is_normalized_from_env(monkeypatch):
+    monkeypatch.delenv("HARNESS_USER_NAME", raising=False)
+    assert user_name() is None
+    monkeypatch.setenv("HARNESS_USER_NAME", "   ")
+    assert user_name() is None
+    monkeypatch.setenv("HARNESS_USER_NAME", "  Sam \n  Lee ")
+    assert user_name() == "Sam Lee"
+    monkeypatch.setenv("HARNESS_USER_NAME", "x" * 100)
+    assert len(user_name()) == 40  # it rides every prompt: capped short

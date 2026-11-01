@@ -7,6 +7,16 @@ Full text of shortened entries: .claude/learnings-archive.md (grep the date).
 
 Format: `YYYY-MM-DD — decision — why`
 
+- 2026-11-01 — README is a **runnable project that is also a showcase** (Flash-Next structure: promise line, measured
+  headline numbers, feature sections, quick start, settings table) — rejected keeping the "published personal system,
+  not a product" stance: the system is now runnable, and one honest "what it really takes" paragraph covers the cost.
+- 2026-11-01 — README headline numbers are **real usage from the runs table** (cloud era vs local era, spend as a
+  guide) — rejected approval-prediction accuracy: 82.3% loses to the 95.4% always-approve baseline on the same 570 rows.
+- 2026-11-01 — The README names the **concrete dogfooding workflows** (property watch, restaurant booking, holidays,
+  document batches) — rejected generic phrasing: owner's call, not sensitive, and it brings the project to life.
+- 2026-11-01 — The owner's display name comes from **`HARNESS_USER_NAME` in .env** (greeting + system prompt; unset =
+  no name) — rejected a web-UI setting: a single-user value read at startup needs no UI or storage.
+
 - 2026-11-01 — BK-024: reopening your own chat mid-run **un-latches the stream** (runstate T35 `reopenResume` at
   renderSession entry; supersedes BK-019 D9's for-good paint freeze) — rejected an explicit "run in flight elsewhere"
   state: the join + buffered flush already dedupe a mid-run open, so streaming on costs one guarded write, not a new UI state.

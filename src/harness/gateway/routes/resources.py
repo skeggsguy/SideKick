@@ -36,8 +36,9 @@ def build_router(gw: Gateway) -> APIRouter:
     @router.get("/api/health")
     async def health():
         # `sonnet` gates the web UI's Sonnet chat entry (the only non-local
-        # model option; needs an API key on the host).
-        return {"ok": True, "sonnet": gw.sonnet_available}
+        # model option; needs an API key on the host). `name` is the greeting's
+        # HARNESS_USER_NAME, null when unset.
+        return {"ok": True, "sonnet": gw.sonnet_available, "name": gw.user_name}
 
     # ---- sessions ---------------------------------------------------------
 

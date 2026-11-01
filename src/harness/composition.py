@@ -59,7 +59,7 @@ from .tools.documents import ReadDocumentTool
 from .tools.maps import maps_tools
 
 
-from .prompt import SYSTEM_PROMPT
+from .prompt import system_prompt, user_name
 
 
 # Pre-2026-09-28 HARNESS_EFFORT values (the cloud API's own vocabulary) that
@@ -378,7 +378,7 @@ def build_agent(
     agent = Agent(
         provider=provider,
         registry=registry,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt(user_name()),
         policy=policy,
         run_store=run_store,
         audit=audit,

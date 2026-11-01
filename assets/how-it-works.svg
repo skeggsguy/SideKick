@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 530" width="760" height="530" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="How Sidekick works: you, a schedule or a watcher wakes it; the agent loop plans with a local model, every tool call passes the policy gate, and anything that sends, books or deletes waits for your approval; one model per job; everything is remembered in one SQLite file">
+<rect width="760" height="530" fill="#ffffff"/>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6670"/></marker>
+<marker id="t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f6e72"/></marker>
+</defs>
+<text x="20" y="30" font-size="18" font-weight="700" fill="#1b2228">How Sidekick works</text>
+<text x="20" y="50" font-size="12" fill="#5a6670">One daemon on your Mac. Whatever wakes it up takes the same path, and every tool call passes the policy gate.</text>
+
+<rect x="10" y="66" width="740" height="94" rx="8" fill="#f2f8f8"/>
+<text x="22" y="86" font-size="13" font-weight="700" fill="#0f6e72">1 · SOMETHING WAKES IT UP</text>
+<g font-size="11.5" fill="#1b2228" text-anchor="middle">
+<rect x="20" y="96" width="225" height="54" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="132" y="117" font-weight="600">You</text><text x="132" y="134">chat from the iPad, iPhone or a terminal</text>
+<rect x="267" y="96" width="225" height="54" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="380" y="117" font-weight="600">A schedule</text><text x="380" y="134">the 7:00 briefing, a weekly search</text>
+<rect x="515" y="96" width="225" height="54" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="627" y="117" font-weight="600">A watcher</text><text x="627" y="134">a new email worth your attention</text>
+</g>
+
+<rect x="10" y="176" width="740" height="180" rx="8" fill="#f2f8f8"/>
+<g stroke="#5a6670" stroke-width="1.5" marker-end="url(#a)">
+<line x1="132" y1="150" x2="132" y2="185"/><line x1="380" y1="150" x2="380" y2="185"/><line x1="627" y1="150" x2="627" y2="185"/>
+</g>
+<rect x="20" y="186" width="720" height="26" rx="6" fill="#1b2228"/>
+<text x="380" y="203" font-size="11.5" font-weight="600" fill="#ffffff" text-anchor="middle">Orchestrator: one queue for chat, schedules and watchers, so proactive work is the same code path as chat</text>
+<text x="22" y="232" font-size="13" font-weight="700" fill="#0f6e72">2 · THE AGENT WORKS</text>
+<g font-size="11.5" fill="#1b2228" text-anchor="middle">
+<rect x="20" y="242" width="225" height="80" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="132" y="264" font-weight="600">Agent loop</text><text x="132" y="281">the model plans and calls tools,</text><text x="132" y="296">loading tool groups only when</text><text x="132" y="311">it needs them</text>
+<rect x="267" y="242" width="225" height="80" rx="6" fill="#0f6e72"/>
+<text x="380" y="264" font-weight="700" fill="#ffffff">Policy gate</text><text x="380" y="281" fill="#e2f0f0">read-only: runs at once</text><text x="380" y="296" fill="#e2f0f0">local edits: allowlist or ask you</text><text x="380" y="311" fill="#e2f0f0">sends, deletes: always ask you</text>
+<rect x="515" y="242" width="225" height="80" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="627" y="264" font-weight="600">Tools</text><text x="627" y="281">web search and fetch, a real Chrome,</text><text x="627" y="296">Gmail, Calendar, Drive, Tasks,</text><text x="627" y="311">files, sandbox, maps, memory</text>
+</g>
+<g stroke="#0f6e72" stroke-width="1.5" marker-end="url(#t)">
+<line x1="245" y1="282" x2="265" y2="282"/><line x1="492" y1="282" x2="513" y2="282"/>
+</g>
+<text x="380" y="343" font-size="11.5" font-weight="600" fill="#b8730f" text-anchor="middle">Needs you? The run pauses and sends the approval to your phone.</text>
+
+<rect x="10" y="372" width="740" height="98" rx="8" fill="#f2f8f8"/>
+<text x="22" y="392" font-size="13" font-weight="700" fill="#0f6e72">3 · THE MODELS BEHIND IT, ONE PER JOB</text>
+<g font-size="11.5" fill="#1b2228" text-anchor="middle">
+<rect x="20" y="402" width="225" height="58" rx="6" fill="#1b2228"/>
+<text x="132" y="422" font-weight="600" fill="#ffffff">Local Qwen3.8-Flash-Next</text><text x="132" y="438" fill="#dfe5e9">the main agent and compaction,</text><text x="132" y="452" fill="#dfe5e9">on the Mac itself</text>
+<rect x="267" y="402" width="225" height="58" rx="6" fill="#ffffff" stroke="#c4ccd2"/>
+<text x="380" y="422" font-weight="600">Apple Foundation Model</text><text x="380" y="438">on-device helpers: email triage,</text><text x="380" y="452">titles, memory extraction</text>
+<rect x="515" y="402" width="225" height="58" rx="6" fill="#ffffff" stroke="#c4ccd2" stroke-dasharray="4 3"/>
+<text x="627" y="422" font-weight="600">Claude Sonnet 5</text><text x="627" y="438">opt-in, one message at a time,</text><text x="627" y="452">for the turns that need it</text>
+</g>
+
+<rect x="10" y="484" width="740" height="34" rx="8" fill="#fbf4e8"/>
+<text x="380" y="505" font-size="11.5" fill="#1b2228" text-anchor="middle"><tspan font-weight="600">Remembered in one SQLite file:</tspan> sessions · runs and their costs · the append-only audit log · memory facts and episodes</text>
+</svg>

@@ -22,6 +22,7 @@ from ..core.orchestrator import Orchestrator
 from ..core.policy import ActionClass, Autonomy, deferred_approver
 from ..core.prediction import ApprovalPredictor
 from ..composition import build_agent, open_memory, sonnet_available
+from ..prompt import user_name
 from .approval_text import approval_summary
 from ..tools.notify import NotifyTool
 from ..providers.apple_fm import AppleFMProvider
@@ -325,6 +326,7 @@ async def amain() -> None:
             local_url=os.environ.get("HARNESS_LOCAL_URL"),
             # Gates the Sonnet chat entry (the key's only remaining purpose).
             sonnet_available=sonnet_available(),
+            user_name=user_name(),
         )
         app = create_app(gw)
         server = build_server(app, host, port)

@@ -7,6 +7,8 @@ model reads alongside it — say a thing once, where it applies."""
 
 from __future__ import annotations
 
+import os
+
 SYSTEM_PROMPT = (
     # Role & approvals
     "You are a personal agent harness running on the user's own machine. "
@@ -33,3 +35,19 @@ SYSTEM_PROMPT = (
     "and their zone changes. Call current_time before any relative-date work, "
     "and pass every time you read or write through convert_time."
 )
+
+
+def user_name() -> str | None:
+    """The owner's display name (HARNESS_USER_NAME): the web UI greeting and
+    one line of the system prompt. Owner config, not model input — but it
+    rides every prompt, so whitespace is collapsed and it is capped short."""
+    name = " ".join(os.environ.get("HARNESS_USER_NAME", "").split())[:40]
+    return name or None
+
+
+def system_prompt(name: str | None = None) -> str:
+    """SYSTEM_PROMPT, plus the owner's name when HARNESS_USER_NAME is set. Fixed
+    for the daemon's lifetime, so the local lane's cached prefix still holds."""
+    if not name:
+        return SYSTEM_PROMPT
+    return f"{SYSTEM_PROMPT}\n\nThe user's name is {name}."

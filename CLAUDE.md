@@ -50,7 +50,7 @@ mcp_servers/ms365/ — read-only Outlook mail/calendar over Microsoft Graph (per
 ## Conventions
 
 - Async-first; type hints throughout; provider-normalized types live in core/types.py
-- Tool safety tiers (core/policy.py): READ_ONLY auto-runs; MUTATING_LOCAL/OUTWARD need allowlist or approval; DESTRUCTIVE always prompts, never allowlisted
+- Tool safety tiers (core/policy.py): READ_ONLY auto-runs; MUTATING_LOCAL needs allowlist or approval; OUTWARD always needs approval (never allowlistable); DESTRUCTIVE always prompts, and is denied outright in unattended runs
 - Process skills in `.claude/skills/` (new-tool, new-playbook, webui-change, release-check) — invoke the matching one before starting that kind of work.
 - Adding a tool (in-process or MCP): follow docs/adding-a-tool.md — covers registration, the safety classification (unlisted MCP tools default to OUTWARD), tests, and the daemon-restart/re-auth refresh
 - SQL parameters always bound, never interpolated

@@ -99,6 +99,8 @@ class Gateway:
     #: Gates the web UI's Sonnet dropdown entry; a request for Sonnet without
     #: it is a 422. Nothing else consults the key.
     sonnet_available: bool = False
+    #: HARNESS_USER_NAME, for the web UI greeting (None = greet without a name).
+    user_name: str | None = None
 
     def busy_reason(self, session_id: str | None) -> str | None:
         """The 409 copy when a new chat turn must not start on this session,
