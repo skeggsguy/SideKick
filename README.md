@@ -30,8 +30,8 @@ It's the assistant I run every day, published as it is. It was built almost enti
 Ask anything, from the iPad or iPhone (an installable web app with push notifications), or from a
 terminal. It answers with live web search ([Brave](https://brave.com/search/api/)), reads pages, and
 falls back to a real Chrome when a site needs JavaScript. It reads and writes your Gmail, Calendar,
-Drive and Tasks, and it can see photos you attach. Dictation runs locally with Whisper, so your voice
-never leaves the Mac. Weather, maps, RSS, Hacker News and Reddit are built in.
+Drive and Tasks, and it can see photos you attach. Weather, maps, RSS, Hacker News and Reddit are
+built in.
 
 ### A memory that grows as you use it
 
@@ -138,7 +138,11 @@ there, Sidekick says so.
 | | Cost |
 |---|---|
 | **Local model** | **$0**: it runs on your Mac |
-| **Cloud (Claude Sonnet)** | about **US$10–20 a month**, depending on how much you use it |
+| **Cloud (Claude Sonnet)** | about **US$10 a week**, depending on how much you use it |
+
+Every run's tokens and cost are logged as it happens, so you always know what you're spending: the
+web app's runs list shows each run's cost, `uv run harness runs summary` totals it, and the built-in weekly
+cost report sums up the week.
 
 ## Quick start
 
@@ -199,7 +203,6 @@ wakes up and does something useful before you ask is the sum of them, and each o
 | Memory search | Ollama with `nomic-embed-text` ([guide](docs/p4-setup.md)) |
 | `sandbox_run` | Docker (OrbStack on macOS) and a one-time image build ([guide](docs/sandbox-setup.md)) |
 | The browser tools | Chrome and the egress proxy, both as login agents ([guide](docs/browser-fallback-setup.md)) |
-| Dictation | faster-whisper ([guide](docs/stt-setup.md)) |
 | Push notifications | HTTPS from `tailscale serve`, and the web app added to the Home Screen |
 | Outlook mail and calendar | An Azure app registration; off by default ([guide](docs/ms365-setup.md)) |
 
@@ -259,7 +262,7 @@ the most useful thing here.
 - [Adding a tool](docs/adding-a-tool.md): registration, safety class, tests.
 - [Google OAuth](docs/google-oauth-setup.md), [Maps](docs/maps-setup.md),
   [Browser](docs/browser-fallback-setup.md), [Sandbox](docs/sandbox-setup.md),
-  [Dictation](docs/stt-setup.md), [Outlook](docs/ms365-setup.md): one guide per integration.
+  [Outlook](docs/ms365-setup.md): one guide per integration.
 - [Memory](docs/p4-setup.md), [Email watcher](docs/p5-setup.md),
   [Backups, costs and evals](docs/p7-setup.md).
 
@@ -272,7 +275,7 @@ the most useful thing here.
 - [Claude](https://www.anthropic.com/claude) for the opt-in cloud turns, and Claude Code for building
   nearly all of it.
 - [sqlite-vec](https://github.com/asg017/sqlite-vec), the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk),
-  [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Ollama](https://ollama.com),
+  [Ollama](https://ollama.com),
   [marked](https://github.com/markedjs/marked) and [DOMPurify](https://github.com/cure53/DOMPurify).
 
 ## Licence
