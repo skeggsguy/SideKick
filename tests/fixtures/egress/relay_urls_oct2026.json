@@ -1,0 +1,295 @@
+{
+  "_meta": {
+    "purpose": "BK-037 corpus fixture: every confabulated routify/OSS relay URL shape attested in the live audit_log (Oct 2026). tests/test_relay_block.py (step 2) must refuse every URL in `blocked` via check_target, and must pass every URL in `allowed` through to the resolver.",
+    "source": {
+      "database": "~/.local/share/harness/harness.db (live, read-only)",
+      "extraction": "sqlite3 -readonly ~/.local/share/harness/harness.db \"SELECT id, ts, tool, decision, is_error, args_json FROM audit_log WHERE args_json LIKE '%routify%' ORDER BY ts\" — 29 rows; a LIKE on 'aliyuncs' also returns exactly these 29 (no relay-shaped row lacks the token); cross-checked against messages (31 rows carry the token) and session_checkpoints (1 row, prose mention only, no URL).",
+      "extracted_on": "2026-10-31",
+      "audit_rows": 29,
+      "url_occurrences": 29,
+      "distinct_shapes": 12,
+      "host_spellings": [
+        "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+        "routify-file-proxy-sg.ap-southeast-1.oss.aliyuncs.com"
+      ],
+      "families_not_attested": "aliyuncs.io, oss-accelerate, *-internal, oversea — none attested in Oct 2026. D1's 56-char second gap covers every one of these spellings by construction (checked offline against constructed hosts: 8/8 match; the attested public spelling spends 29 of the 56 chars, so even -internal fits), so they are NOT an under-inclusion trade — merely not corpus-testable. Under-inclusion applies only to labels outside the routify+file shape."
+    },
+    "normalisation_D4": "host spellings verbatim; volatile path segments placeholdered (<DATE>, trace_<TRACE>, requestId_<REQ>, <HEX32> leaf, named artifacts kept); query: Expires=<EPOCH>, OSSAccessKeyId=<KEY> (the memorized key id is noise), Signature=<SIG> UNLESS the attested signature is degenerate (literal xxx/abcd/placeholder, leaf-echo hex, alphabet run, or a repeated fragment) — then it stays verbatim per D4."
+  },
+  "blocked": [
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>.html?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=<SIG>",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32.html",
+      "signature_form": "encoded-base64",
+      "signature_verbatim": null,
+      "audit_ids": [
+        6589,
+        6679
+      ],
+      "n_rows": 2,
+      "tools": [
+        "browser_fetch",
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=O0PoO0z0V0d0h0l0K0d0Y0d0K0c%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:repeating('0d0'x2)",
+      "signature_verbatim": "O0PoO0z0V0d0h0l0K0d0Y0d0K0c%3D",
+      "audit_ids": [
+        6593
+      ],
+      "n_rows": 1,
+      "tools": [
+        "browser_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/data.json?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=abcd",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "named:data.json",
+      "signature_form": "degenerate:literal:abcd",
+      "signature_verbatim": "abcd",
+      "audit_ids": [
+        6598
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=aBcDeFgHiJkLmNoPqRsTuVwXyZ%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:alphabet-run",
+      "signature_verbatim": "aBcDeFgHiJkLmNoPqRsTuVwXyZ%3D",
+      "audit_ids": [
+        6620
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=<SIG>",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "encoded-base64",
+      "signature_verbatim": null,
+      "audit_ids": [
+        6678,
+        6680,
+        7960,
+        7964,
+        7965,
+        7982,
+        7983,
+        7986,
+        7989,
+        7990,
+        8220,
+        8336,
+        8341,
+        8466,
+        8472,
+        8476,
+        9448
+      ],
+      "n_rows": 17,
+      "tools": [
+        "web_fetch",
+        "browser_navigate",
+        "browser_fetch"
+      ],
+      "decisions": [
+        "denied",
+        "approved",
+        "auto"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=placeholder",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:literal:placeholder",
+      "signature_verbatim": "placeholder",
+      "audit_ids": [
+        6723
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=v%2F6%2Bq8j9E%2BEf0z9q6%2F0z9q6f%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:repeating('0z9q6'x2)",
+      "signature_verbatim": "v%2F6%2Bq8j9E%2BEf0z9q6%2F0z9q6f%3D",
+      "audit_ids": [
+        8142
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>.0?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=1z0n2ZS%2Fj%2Bt%2BSj5Z9O4z0n2ZSj5%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32.0",
+      "signature_form": "degenerate:repeating('z0n2ZS'x2)",
+      "signature_verbatim": "1z0n2ZS%2Fj%2Bt%2BSj5Z9O4z0n2ZSj5%3D",
+      "audit_ids": [
+        8145
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=6w5%2Bb9%2B9%2Fb9%2B9%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:repeating('b9+9'x2)",
+      "signature_verbatim": "6w5%2Bb9%2B9%2Fb9%2B9%3D",
+      "audit_ids": [
+        8338
+      ],
+      "n_rows": 1,
+      "tools": [
+        "browser_fetch"
+      ],
+      "decisions": [
+        "auto"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=Q5F9%2FQ5F9%2FQ5F9%3D",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:repeating('Q5F9/Q'x2)",
+      "signature_verbatim": "Q5F9%2FQ5F9%2FQ5F9%3D",
+      "audit_ids": [
+        8345
+      ],
+      "n_rows": 1,
+      "tools": [
+        "browser_fetch"
+      ],
+      "decisions": [
+        "auto"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.ap-southeast-1.oss.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=1533169c3726c539f36ee98b17f74c67%3D",
+      "host_spelling": "routify-file-proxy-sg.ap-southeast-1.oss.aliyuncs.com",
+      "endpoint_style": "dual-stack(bucket.region.oss.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:leaf-echo-hex",
+      "signature_verbatim": "1533169c3726c539f36ee98b17f74c67%3D",
+      "audit_ids": [
+        8352
+      ],
+      "n_rows": 1,
+      "tools": [
+        "browser_fetch"
+      ],
+      "decisions": [
+        "approved"
+      ]
+    },
+    {
+      "url": "https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/production/<DATE>/trace_<TRACE>/requestId_<REQ>/<HEX32>?Expires=<EPOCH>&OSSAccessKeyId=<KEY>&Signature=xxx",
+      "host_spelling": "routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com",
+      "endpoint_style": "public(bucket.oss-region.)",
+      "leaf_form": "hex32",
+      "signature_form": "degenerate:literal:xxx",
+      "signature_verbatim": "xxx",
+      "audit_ids": [
+        9457
+      ],
+      "n_rows": 1,
+      "tools": [
+        "web_fetch"
+      ],
+      "decisions": [
+        "denied"
+      ]
+    }
+  ],
+  "allowed": [
+    {
+      "url": "https://my-bucket.oss-cn-hangzhou.aliyuncs.com/photos/img01.jpg",
+      "why": "legit OSS bucket host (D5): oss-region spelling, no family tokens"
+    },
+    {
+      "url": "https://routify.example.com/health",
+      "why": "routify outside the family (D5): not on aliyuncs"
+    },
+    {
+      "url": "https://files.ap-southeast-1.oss.aliyuncs.com/data/export.csv",
+      "why": "file(s) outside the family (D5): dual-stack OSS host, no routify token"
+    },
+    {
+      "url": "https://example.com/proxy_temp_file/production/routify-file-proxy/report.html",
+      "why": "full token in a PATH of a clean host (D5): host-anchored matcher never sees it"
+    },
+    {
+      "url": "https://example.com/fetch?u=https://routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com/proxy_temp_file/x&Signature=xxx",
+      "why": "relay URL nested in a QUERY of a clean host (D5): urlsplit hostname is the clean host"
+    }
+  ],
+  "prose_never_url_checked": [
+    {
+      "text": "routify-file-proxy URL → denied by user (twice)",
+      "source": "session_checkpoints summary_text (live db)"
+    },
+    {
+      "text": "Where did those routify pages go?",
+      "source": "messages payload_json (user turn)"
+    },
+    {
+      "text": "the URLs got mangled into proxy stubs (`routify-file-proxy…`)",
+      "source": "messages payload_json (assistant turn)"
+    }
+  ]
+}

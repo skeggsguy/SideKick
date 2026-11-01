@@ -1,0 +1,126 @@
+/* Sidekick web UI — white+blue, light default with a dark mode. No build step:
+   theming is CSS custom properties swapped by [data-theme] on <html>. */
+
+:root {
+  /* LIGHT (default, white + blue) */
+  --bg: #ffffff; --panel: #f4f7fb; --panel-2: #eaf1fa; --border: #d4e0ee;
+  --text: #0f1c2e; --dim: #4f6479; --accent: #1a63d6;
+  --accent-ink: #ffffff;   /* text on accent buttons */
+  --on-strong: #ffffff;    /* text on coloured chips */
+  --ok: #157f3c; --bad: #c62f1f; --warn: #b45309;
+  --code-bg: #f0f4fa;
+  --stop-bg: #d9dfe6;  /* Stop button: quiet grey, one step off the panels */
+  /* Risk-chip fills carry white text, so they must clear 4.5:1 vs white in
+     BOTH themes — one dark-enough set works everywhere. */
+  --risk-read: #15803d; --risk-local: #b45309;
+  --risk-outward: #b91c1c; --risk-destructive: #7d1010;
+  --shadow: 0 1px 3px rgba(15,28,46,.08);
+}
+/* Dark tokens, shared by the system-default (no manual pref) and explicit dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0f1722; --panel: #1a212b; --panel-2: #222c39; --border: #2c3645;
+    --text: #d8e0ea; --dim: #8194aa; --accent: #4da3ff;
+    --accent-ink: #08111d; --on-strong: #ffffff;
+    --ok: #3fbf7f; --bad: #e0604f; --warn: #d6a23a;
+    --code-bg: #0c121b;
+    --stop-bg: #3a4450;  /* Stop button: one step up from the panels */
+    --risk-read: #15803d; --risk-local: #b45309;
+    --risk-outward: #b91c1c; --risk-destructive: #7d1010;
+    --shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1722; --panel: #1a212b; --panel-2: #222c39; --border: #2c3645;
+  --text: #d8e0ea; --dim: #8194aa; --accent: #4da3ff;
+  --accent-ink: #08111d; --on-strong: #ffffff;
+  --ok: #3fbf7f; --bad: #e0604f; --warn: #d6a23a;
+  --code-bg: #0c121b;
+  --stop-bg: #3a4450;  /* Stop button: one step up from the panels */
+  /* Same dark-enough risk fills as light + system-dark — white text needs
+     4.5:1 in every theme; don't lighten these for explicit dark. */
+  --risk-read: #15803d; --risk-local: #b45309;
+  --risk-outward: #b91c1c; --risk-destructive: #7d1010;
+  --shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+
+* { box-sizing: border-box; }
+/* overscroll-behavior none kills iOS's document rubber-band — without it a swipe
+   starting on a non-scrollable area (header, chat form, screen edge) drags the
+   whole app frame, pinned bars included. Inner scrollers get `contain` so
+   hitting their ends can't chain the gesture back up to the document. */
+html, body { height: 100%; margin: 0; overscroll-behavior: none; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.45 -apple-system, system-ui, sans-serif;
+  display: flex; flex-direction: column;
+}
+/* Always reserve the top safe-area inset. env(safe-area-inset-top) is 0 when the
+   status bar is opaque (the webview already sits below it) and the bar height
+   when translucent — so this never double-gaps yet always clears the iOS status
+   bar. The old theme-conditional version left light mode unpadded, so content
+   slid up under the status bar (dark/system were fine because they got padded). */
+body { padding-top: env(safe-area-inset-top); }
+
+/* ---- header ---- */
+/* sticky + solid background: iOS 27 blurs the top ~35px of page content up into
+   the status area (logo/tabs faded out) UNLESS a pinned opaque bar sits at the
+   top edge. The document never scrolls, so sticky is visually a no-op elsewhere —
+   don't drop either half. Verified on-device 2026-09-17 (learnings.md). */
+header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 5; background: var(--bg);
+}
+.brand { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.sk-mark { width: 37px; height: 24px; flex: 0 0 auto; }  /* 62:40 viewBox ratio */
+h1 { font-size: 15px; margin: 0; color: var(--accent); letter-spacing: .2px; }
+nav#tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; overscroll-behavior: contain; }
+/* /api/events is down and auto-reconnect is in flight (app.js connectEvents). */
+#conn-dot {
+  width: 8px; height: 8px; flex: none; align-self: center; border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent);
+}
+#conn-dot[hidden] { display: none; }
+nav#tabs button, #theme-btn, #push-btn {
+  background: none; border: 1px solid transparent; color: var(--dim);
+  padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 16px;
+  white-space: nowrap; min-height: 36px;
+}
+nav#tabs button.active { color: var(--text); background: var(--panel); border-color: var(--border); }
+#theme-btn, #push-btn { font-size: 16px; }
+.badge {
+  background: var(--bad); color: var(--on-strong); border-radius: 9px;
+  padding: 0 6px; font-size: 11px; margin-left: 2px;
+}
+
+main { flex: 1; overflow: hidden; display: flex; }
+.tab { display: none; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+.tab.active { display: flex; }
+
+/* ---- sub navigation (Approvals pending/history, Settings sections) ---- */
+.subnav {
+  display: flex; gap: 4px; padding: 8px 12px 0; overflow-x: auto;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--border);
+}
+.subnav button {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--dim); padding: 6px 10px 8px; cursor: pointer; font-size: 14px;
+  white-space: nowrap;
+}
+.subnav button.active { color: var(--text); border-bottom-color: var(--accent); }
+.subtab { display: none; flex: 1; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.subtab.active { display: flex; }
+/* iOS rule: ONE vertical touch scroller per pane. WebKit composites every
+   touch-scrollable box as its own layer, and nested same-axis scrollers
+   translate against each other MID-gesture — the memory/schedule cards "swing"
+   off their place on a phone swipe and snap back at rest. Invisible in headless
+   Chromium, device-only. A pane that holds a `.cards` list delegates scrolling
+   to it; `hidden` still gives `.cards` its flex containment (scroll container
+   ⇒ automatic min-size 0) without opening a second touch layer. `#tab-settings`
+   is deliberately NOT a scroller — as `auto` it was a third nested layer.
+   Panes with no list (contacts) keep the pane-level `auto`. */
+.subtab:has(> .cards) { overflow-y: hidden; }
+

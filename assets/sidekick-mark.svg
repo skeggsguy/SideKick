@@ -1,0 +1,22 @@
+<!-- The Sidekick "SK" block mark. Extracted from the #sk-glyph symbol in
+     src/harness/gateway/webui/index.html — keep the two in sync by hand;
+     the web UI defines it inline so the PWA needs no extra request. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 62 40" width="248" height="160"
+     role="img" aria-label="Sidekick">
+  <title>Sidekick</title>
+  <g fill="currentColor">
+    <rect x="1" y="2" width="28" height="9" rx="2.5"/>
+    <rect x="20" y="2" width="9" height="17" rx="2.5" opacity=".55"/>
+    <rect x="1" y="15.5" width="28" height="9" rx="2.5"/>
+    <rect x="1" y="19" width="9" height="17" rx="2.5" opacity=".55"/>
+    <rect x="1" y="29" width="28" height="9" rx="2.5"/>
+    <rect x="36" y="2" width="9" height="36" rx="2.5"/>
+    <!-- K arms share one opacity group so their overlap at the hinge can't
+         double-darken into a triangle; ±48° x22 long puts the tips level
+         with the spine's top and bottom. -->
+    <g opacity=".7">
+      <rect x="42" y="15.5" width="22" height="9" rx="2.5" transform="rotate(-48 43 20)"/>
+      <rect x="42" y="15.5" width="22" height="9" rx="2.5" transform="rotate(48 43 20)"/>
+    </g>
+  </g>
+</svg>

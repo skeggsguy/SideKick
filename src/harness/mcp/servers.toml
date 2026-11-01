@@ -1,0 +1,92 @@
+# MCP servers the harness connects to at startup.
+#
+# Per server:
+#   command/args  — how to spawn it (stdio transport)
+#   enabled       — set false to skip without deleting the entry
+#   read_only / mutating_local / outward / destructive
+#                 — classification lists for the policy engine.
+#                   Tools NOT listed anywhere default to OUTWARD (gated).
+#
+# File paths: the harness injects HARNESS_FILE_ROOTS at spawn, so downloads
+# land in <repo>/scratch/downloads by default and any local_path outside the
+# agent's file area is rejected (see core/paths.py + _paths.py).
+#
+# google-workspace-mcp is this repo's own server (mcp_servers/google_workspace),
+# installed as a console script in the venv. Reads are READ_ONLY; local writes
+# (drafts, own-calendar events, tasks, docs) are MUTATING_LOCAL (allowlistable);
+# sends are OUTWARD (never allowlisted, always human-approved). Anything new and
+# unlisted still defaults to OUTWARD (gated).
+[servers.google_workspace]
+command = "google-workspace-mcp"
+args = []
+enabled = true
+read_only = [
+    "gmail_search",
+    "gmail_read",
+    "gmail_get_draft",
+    "calendar_list_events",
+    "calendar_get_event",
+    "calendar_list_calendars",
+    "drive_list",
+    "drive_read",
+    "drive_file_info",
+    "sheets_read",
+    "tasklists_list",
+    "tasks_list",
+]
+mutating_local = [
+    # Downloads WRITE to the local file area — a filesystem mutation, same as
+    # drive_download. Never READ_ONLY, or supervised/restricted runs could
+    # write files ungated. Audit classes from the IMPLEMENTATION's local writes;
+    # boundedness (jail dir, write-once names, caps) never buys READ_ONLY.
+    "gmail_download_attachment",
+    "gmail_draft_create",
+    "gmail_draft_reply",
+    "calendar_event_create",
+    "calendar_event_update",
+    "task_create",
+    "task_update",
+    "task_complete",
+    "tasklist_create",
+    "docs_create",
+    "docs_append_text",
+    "docs_edit_text",
+    "sheets_create",
+    "sheets_append",
+    "sheets_update",
+    "drive_upload",
+    "drive_create_folder",
+    "drive_move",
+    "drive_rename",
+    "drive_download",
+    "drive_update_content",
+]
+outward = [
+    "gmail_send",
+    "gmail_send_draft",
+    "calendar_event_attendees",
+    "calendar_event_respond",
+]
+# gmail/drive: trash only — never permanent delete (the gmail.modify scope
+# ceiling already excludes it). Calendar has no trash API — events().delete
+# moves the event to the Bin (~30 days, web-UI restore only). DESTRUCTIVE:
+# interactive always prompts, supervised denies, never allowlistable.
+destructive = [
+    "gmail_trash_message",
+    "drive_trash_file",
+    "calendar_event_delete",
+]
+
+# ms365 (mcp_servers/ms365): read-only Outlook mail + calendar over Microsoft
+# Graph, for a personal Microsoft account (optional connector).
+# One-time setup: Azure app registration + `uv run ms365-mcp --auth`
+# (docs/ms365-setup.md), then set enabled = true.
+[servers.ms365]
+command = "ms365-mcp"
+args = []
+enabled = false
+read_only = [
+    "outlook_mail_search",
+    "outlook_mail_read",
+    "outlook_calendar_list_events",
+]

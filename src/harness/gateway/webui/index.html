@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sidekick</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- iOS bakes status-bar-style into the icon at ADD time: keep the static "default"
+       (the sticky opaque header stops iOS 27's top blur). Device-only to verify. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ffffff">
+  <!-- theme.js runs before paint to avoid a flash; must precede the stylesheet. -->
+  <script src="/theme.js"></script>
+  <!-- Bump ?v= below on ANY stylesheet edit, or the iPad home-screen PWA keeps serving stale CSS. -->
+  <link rel="stylesheet" href="/base.css?v=3">
+  <link rel="stylesheet" href="/chat.css?v=11">
+  <link rel="stylesheet" href="/attach.css?v=1">
+  <link rel="stylesheet" href="/compaction.css?v=1">
+  <link rel="stylesheet" href="/panels.css?v=3">
+</head>
+<body>
+  <!-- SK block glyph, defined once; both logo spots render it via <use>. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="sk-glyph" viewBox="0 0 62 40">
+      <rect x="1" y="2" width="28" height="9" rx="2.5" fill="currentColor"/>
+      <rect x="20" y="2" width="9" height="17" rx="2.5" fill="currentColor" opacity=".55"/>
+      <rect x="1" y="15.5" width="28" height="9" rx="2.5" fill="currentColor"/>
+      <rect x="1" y="19" width="9" height="17" rx="2.5" fill="currentColor" opacity=".55"/>
+      <rect x="1" y="29" width="28" height="9" rx="2.5" fill="currentColor"/>
+      <rect x="36" y="2" width="9" height="36" rx="2.5" fill="currentColor"/>
+      <!-- K arms share one opacity group so their overlap at the hinge can't
+           double-darken into a triangle; ±48° x22 long puts the tips level
+           with the spine's top and bottom. -->
+      <g opacity=".7" fill="currentColor">
+        <rect x="42" y="15.5" width="22" height="9" rx="2.5" transform="rotate(-48 43 20)"/>
+        <rect x="42" y="15.5" width="22" height="9" rx="2.5" transform="rotate(48 43 20)"/>
+      </g>
+    </symbol>
+  </svg>
+
+  <header>
+    <span class="brand">
+      <svg class="sk-mark" viewBox="0 0 62 40" aria-hidden="true"><use href="#sk-glyph"/></svg>
+      <h1>Sidekick</h1>
+    </span>
+    <nav id="tabs">
+      <button data-tab="chat" class="active">Chat</button>
+      <button data-tab="approvals">Approvals <span id="approvals-badge" class="badge" hidden></span></button>
+      <button data-tab="runs">Runs</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+    <span id="conn-dot" hidden title="Disconnected from Sidekick — retrying"></span>
+    <button id="theme-btn" aria-label="Theme: system" title="Theme: System / Light / Dark">🌗</button>
+    <button id="push-btn" aria-label="Enable notifications" title="Enable notifications">🔔</button>
+  </header>
+
+  <main>
+    <section id="tab-chat" class="tab active">
+      <div class="chat-top">
+        <select id="session-select" aria-label="Conversation"><option value="">new chat</option></select>
+        <button id="rename-btn" class="icon-btn" aria-label="Rename chat" title="Rename chat" hidden>✎</button>
+        <!-- Effort levels for the local model, plus one Sonnet entry (pinned
+             to medium, opt-in cloud) revealed by /api/health when the host
+             has an API key. -->
+        <select id="chat-effort" aria-label="Model and thinking effort"
+                title="Model and thinking effort. Changing it makes the next reply reread the whole chat once.">
+          <option value="off">Off</option>
+          <option value="low" selected>Low</option>
+          <option value="medium">Medium</option>
+          <option value="xhigh">XHigh</option>
+          <option value="sonnet" hidden>Sonnet</option>
+        </select>
+      </div>
+      <!-- Empty-chat greeting; time-of-day is computed client-side so it follows
+           the viewing device's clock, not the server's. Fades on first message. -->
+      <div id="chat-greeting" hidden aria-hidden="true">
+        <svg viewBox="0 0 62 40"><use href="#sk-glyph"/></svg>
+        <p id="chat-greeting-text"></p>
+      </div>
+      <div id="chat-log" role="log" aria-live="polite"><!-- Recovery-diagnostic capture (armRecoverDebug, events.js): hidden
+          UNLESS ?recoverdebug=1. Last child so it scrolls with the transcript;
+          resetTranscript() wipes innerHTML, so the arm helper re-creates it.
+          aria-hidden: #chat-log is a live region — never narrate the trace. --><pre id="recover-debug" aria-hidden="true" hidden></pre></div>
+      <!-- Scroll-follow pill (follow.js). Outside #chat-log on purpose:
+           resetTranscript wipes the log's innerHTML. -->
+      <button type="button" id="chat-jump" aria-label="Jump to latest" hidden>↓ Latest</button>
+      <!-- Live turn status (status.js): an IN-FLOW row at the bottom of the
+           transcript, owning its own space (floats always end up over text —
+           the composer autosizes 66→160px so no bottom offset survives).
+           Hidden = takes zero space. aria-hidden: the timer would spam the
+           aria-live log. -->
+      <div id="chat-status" hidden aria-hidden="true">
+        <span class="cs-dot"></span>
+        <span id="chat-status-label"></span>
+        <span id="chat-status-timer"></span>
+        <span id="chat-status-sub" hidden></span>
+      </div>
+      <!-- Pending attachment chips (attach.js): photo previews and document
+           chips for the draft message, each removable; emptied when the send
+           starts. -->
+      <div id="attach-bar" hidden></div>
+
+      <form id="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="Message Sidekick…" autocomplete="off"></textarea>
+        <button type="button" id="chat-mic" class="icon-btn" aria-label="Dictate"
+                title="Dictate" aria-pressed="false" hidden>🎤</button>
+        <!-- Always visible (unlike the STT-gated mic). NO capture attribute:
+             the native picker must offer camera AND photo library. accept= is
+             a FILTER only — attach.js re-gates each pick and the server
+             sniffs magic bytes (extensions synced with gateway/media.py,
+             pinned in tests/test_conventions). -->
+        <button type="button" id="chat-attach" class="icon-btn" aria-label="Attach a photo or document"
+                title="Attach a photo or document">📎</button>
+        <input type="file" id="chat-attach-input" accept="image/*,.pdf,.docx,.xlsx,.txt,.md" multiple hidden>
+        <button type="submit" id="chat-send">Send</button>
+      </form>
+    </section>
+
+    <section id="tab-approvals" class="tab">
+      <nav class="subnav">
+        <button data-appr="pending" class="active">Pending</button>
+        <button data-appr="history">History</button>
+      </nav>
+      <div id="approvals-list" class="cards"></div>
+      <div id="approvals-history" class="cards" hidden></div>
+    </section>
+
+    <section id="tab-runs" class="tab">
+      <div id="runs-list" class="cards"></div>
+    </section>
+
+    <section id="tab-settings" class="tab">
+      <nav class="subnav">
+        <button data-sub="triggers" class="active">Schedules</button>
+        <button data-sub="memory">Memory</button>
+        <button data-sub="contacts">Contact details</button>
+        <button data-sub="connections">Connections</button>
+        <button data-sub="tools">Tools Security</button>
+      </nav>
+
+      <section id="sub-triggers" class="subtab active">
+        <!-- Create/edit form: an accordion so the schedule list stays the
+             main content. Inputs are ≥16px (below that iPad zooms on focus). -->
+        <details id="schedule-acc" class="card schedule-acc">
+          <summary id="schedule-acc-title">＋ New schedule</summary>
+          <form id="schedule-form" class="schedule-form">
+          <label class="sf-field">Label
+            <input id="schedule-label" placeholder="short name, e.g. Weekly review">
+          </label>
+          <label class="sf-field">Start from a template
+            <select id="schedule-template"><option value="">(blank)</option></select>
+          </label>
+          <label class="sf-field">Instructions
+            <textarea id="schedule-prompt" rows="6"
+              placeholder="What should each run do? Be specific — this is the whole brief the run gets."></textarea>
+          </label>
+          <label class="sf-field">Cron (local time)
+            <input id="schedule-cron" placeholder="e.g. 30 7 * * 1-5">
+            <span id="schedule-cron-next" class="sf-note"></span>
+          </label>
+          <label class="sf-check"><input type="checkbox" id="schedule-oneshot"> One-shot (disables itself after firing)</label>
+          <fieldset class="sf-autonomy">
+            <legend>Autonomy</legend>
+            <label><input type="radio" name="autonomy" value="supervised" checked> Supervised</label>
+            <label><input type="radio" name="autonomy" value="autonomous"> Autonomous</label>
+            <p class="sf-note" id="schedule-autonomy-note"></p>
+          </fieldset>
+          <div class="sf-field">
+            <span class="sf-label">Tools <span id="schedule-tools-required" class="sf-required" hidden>required for autonomous</span></span>
+            <div id="schedule-tools" class="tool-picker"></div>
+          </div>
+          <p class="sf-error" id="schedule-form-error"></p>
+          <div class="actions">
+            <button type="submit">Save</button>
+            <button type="button" id="schedule-cancel" class="quiet">Cancel</button>
+          </div>
+          </form>
+        </details>
+        <div id="triggers-list" class="cards"></div>
+      </section>
+
+      <section id="sub-memory" class="subtab">
+        <form id="memory-form" class="row-form">
+          <input id="memory-q" placeholder="search memory… (empty lists all)">
+          <button type="submit">Search</button>
+          <label><input type="checkbox" id="memory-all"> show forgotten</label>
+        </form>
+        <!-- Static add form (accordion): no dynamic content, so no XSS
+             surface. Category options mirror memory/store.py CATEGORIES. -->
+        <details id="memory-add-acc" class="card schedule-acc">
+          <summary>＋ Add fact</summary>
+          <form id="memory-add" class="schedule-form">
+            <label class="sf-field">Fact
+              <textarea id="memory-add-content" rows="2"
+                placeholder="e.g. my manager is called Alex"></textarea>
+            </label>
+            <label class="sf-field">Category
+              <select id="memory-add-category">
+                <option value="profile">profile</option>
+                <option value="preference">preference</option>
+                <option value="project">project</option>
+                <option value="contact">contact</option>
+                <option value="routine">routine</option>
+                <option value="interest">interest</option>
+                <option value="procedure">procedure</option>
+                <option value="job-config">job-config</option>
+                <option value="ops-lesson">ops-lesson</option>
+              </select>
+            </label>
+            <p class="sf-note" id="memory-add-note"></p>
+            <div class="actions">
+              <button type="submit">Save</button>
+            </div>
+          </form>
+        </details>
+        <div id="memory-list" class="cards"></div>
+      </section>
+
+      <section id="sub-contacts" class="subtab">
+        <!-- Identity refs a delegated browser run may fill into web forms via
+             {email}/{phone}. The values live server-side and are resolved only
+             at dispatch — never shown to the model. Inputs ≥16px (iOS zoom). -->
+        <div class="card">
+          <form id="contacts-form" class="schedule-form">
+            <p class="sf-note">
+              Details a delegated browser task can fill into forms, referenced
+              as <code>{email}</code> / <code>{phone}</code>. Stored only here;
+              never shown to the assistant until it fills a form you approved.
+            </p>
+            <label class="sf-field">Email
+              <input id="contact-email" type="email" placeholder="you@example.com" autocomplete="off">
+            </label>
+            <label class="sf-field">Phone
+              <input id="contact-phone" type="tel" placeholder="+44…" autocomplete="off">
+            </label>
+            <p class="sf-note" id="contacts-note"></p>
+            <div class="actions">
+              <button type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="sub-connections" class="subtab">
+        <div id="connections-list" class="cards"></div>
+      </section>
+
+      <section id="sub-tools" class="subtab">
+        <div id="tools-list" class="cards"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Single approval pop-out for ALL in-chat approvals: viewport-anchored,
+       focus-trapped, keyboard-operable. Neutral by default; outward gets a
+       subtle red cue (top accent + note + red Confirm). -->
+  <div id="approval-modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="am-title">
+    <div class="modal-card">
+      <div class="modal-head" id="am-title"></div>
+      <!-- Where the request came from (chat / schedule / email watcher) and
+           why the policy engine paused it — filled via textContent. -->
+      <p class="modal-source" id="am-source" hidden></p>
+      <p class="modal-why" id="am-why" hidden></p>
+      <p class="modal-note" id="am-note" hidden></p>
+      <div class="modal-fields"></div>
+      <div class="modal-actions">
+        <button id="am-cancel" class="quiet">Cancel</button>
+        <button id="am-confirm">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visually-hidden live region: announces working state to screen readers. -->
+  <div id="sr-status" class="sr-only" aria-live="polite"></div>
+
+  <script src="/marked.min.js"></script>
+  <script src="/purify.min.js"></script>
+  <!-- Entry module; submodules (dom/state/transcript/approvals/settings.js) are
+       fetched via relative imports and revalidated per load (no-cache + ETag),
+       so only this entry tag needs the ?v= bump. -->
+  <script type="module" src="/app.js?v=80"></script>
+</body>
+</html>

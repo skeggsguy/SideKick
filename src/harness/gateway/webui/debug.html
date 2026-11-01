@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sidekick (debug) — launcher</title>
+  <!-- A launcher, not a second app: iOS reads the manifest LINKED FROM THE
+       PAGE BEING ADDED at Add-to-Home-Screen time, and the one linked here
+       has a start_url carrying ?recoverdebug=1 — so the icon installed FROM
+       THIS PAGE arms the on-device recovery capture. The normal Sidekick
+       icon (added from /) never does. This page never navigates anywhere:
+       no scripts of any kind, no refresh, nothing moves the URL bar off
+       /debug.html — if it did, the saved icon would pick up the NORMAL
+       manifest and the capture would never arm. Apple documents NOTHING about
+       which manifest Add-to-Home-Screen reads (BK-022 U6), so a no-trace launch
+       means "start_url/install-source unconfirmed" — never a diagnosis. -->
+  <link rel="manifest" href="/manifest-debug.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-512.png" sizes="512x512">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    body { font: 16px/1.55 -apple-system, BlinkMacSystemFont, sans-serif;
+           margin: 0 auto; padding: 1.5rem 1.25rem 3rem; max-width: 36rem; }
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.6rem; }
+    ol li { margin-bottom: .45rem; }
+    code { background: rgba(127, 127, 127, .15); padding: .05rem .3rem;
+           border-radius: 4px; }
+    .armed, .stop { border-left: 4px solid; padding: .6rem .8rem;
+                    border-radius: 0 6px 6px 0; margin: .6rem 0; }
+    .armed { border-color: #2e7d32; background: rgba(46, 125, 50, .08); }
+    .stop { border-color: #c0392b; background: rgba(192, 57, 43, .08); }
+    footer { margin-top: 2.5rem; color: #666; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <h1>Sidekick (debug)</h1>
+  <p>Installing this page's icon creates a home-screen app whose launch
+  <strong>arms the <code>?recoverdebug=1</code> recovery capture</strong> —
+  the one thing the normal Sidekick icon cannot do: its start_url is
+  <code>/</code>, so the param is gone before the app boots.</p>
+
+  <h2>Install (iPhone / iPad)</h2>
+  <ol>
+    <li>Open <strong>this page in Safari</strong> on the device.</li>
+    <li>Check the URL bar still reads <code>/debug.html</code> — this page
+        never redirects, and the debug manifest is only read when
+        <em>this page</em> is the one being added.</li>
+    <li>Share → <strong>Add to Home Screen</strong> → name it
+        <em>Sidekick (debug)</em> → Add.</li>
+    <li>Launch <strong>that icon</strong> — not the normal Sidekick one.
+        Both icons coexist; the normal one must keep opening un-armed.</li>
+  </ol>
+
+  <h2>Is it armed?</h2>
+  <p class="armed"><strong>Armed</strong> = a trace block in the transcript —
+  above the messages while they stream, at the end after a re-render — whose
+  lines open with an event-time stamp. A run of consecutive no-op
+  <code>endThinking</code> closes collapses into a single <code>×N</code> line,
+  so the block grows more slowly than the event log.</p>
+  <p class="stop"><strong>No trace after launching the debug icon: STOP and
+  report — never run the device check blind.</strong> A suspend/resume
+  failure without the capture is undiagnosable; that is the whole reason
+  this icon exists.</p>
+
+  <h2>Safari-tab session (no install)</h2>
+  <p><a href="/?recoverdebug=1">Open Sidekick with the capture armed (Safari
+  tab)</a> — the BK-019 vehicle: works in a browser tab only, never from a
+  home-screen icon.</p>
+
+  <footer>BK-022. Runbook: <code>scratch/backlog/evidence/bk-019-device-check.md</code> §1.</footer>
+</body>
+</html>

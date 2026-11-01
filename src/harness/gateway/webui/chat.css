@@ -1,0 +1,411 @@
+/* chat — split from style.css. Light default + dark tokens live in base.css. */
+
+/* ---- chat ---- */
+.chat-top { padding: 8px 14px 0; display: flex; gap: 6px; align-items: center; }
+#session-select, #chat-effort {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 8px; max-width: 100%; flex: 1; min-width: 0;
+  font-size: 16px; min-height: 36px;  /* 16px: matches tabs + stops iOS focus-zoom */
+}
+#chat-effort { flex: none; }  /* sized to its label; the chat picker takes the rest */
+.icon-btn {
+  background: var(--panel); color: var(--dim); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 9px; cursor: pointer; min-height: 36px;
+}
+/* BK-017: scroll anchoring (chromium AND WebKit, +120 px measured — never "chromium-only") carries
+   a gap-0 parked view down with no JS write — follow.js owns this scroller; UA gets no vote. */
+#chat-log {
+  flex: 1; min-width: 0; overflow-y: auto; overflow-anchor: none;
+  /* none, not contain (BK-040): contain keeps the log's own rubber-band, and a trackpad push past
+     the bottom then bounced against follow.js's pinned writes (jitter). At the end it just stops. */
+  overscroll-behavior: none;
+  /* --slack: follow.js's bottom slack (BK-030) — held under the content so an animated
+     close can't clamp an unpinned reader's view; 0 except right after such a close. */
+  padding: 14px 14px calc(14px + var(--slack, 0px));
+  /* FEEL VALUES (BK-030 / D2) — settled on the device, not here (decisions 2026-09-28). */
+  --acc-dur: 200ms;                    /* accordion open/close + chevron */
+  --acc-ease: cubic-bezier(.2, 0, 0, 1);
+  --skel-line-h: 6px;                  /* thinking skeleton: line thickness */
+  --skel-gap: 6px;                     /*   space between its two lines */
+  --skel-short: 62%;                   /*   second line's length */
+  --skel-max-w: 320px;                 /*   cap on wide (iPad) screens */
+  --skel-dur: 1.8s;                    /*   shimmer sweep, shared with the label */
+  --clip-think: 40vh;                  /* "Show all" preview caps (BK-031): thinking body */
+  --clip-drawer: 50vh;                 /*   tool drawer */
+}
+/* "↓ Latest" pill (follow.js), shown while the user has scrolled away from a
+   live chat. A SIBLING after #chat-log, never inside it (resetTranscript wipes
+   the log). The negative top margin equals its height + bottom gap, so it
+   floats over the log's bottom edge with zero net layout height — nothing
+   shifts when it appears. 44px tall = minimum comfortable tap target. */
+#chat-jump {
+  flex: none; align-self: center; position: relative; z-index: 2;
+  height: 44px; margin: -56px 0 12px; padding: 0 18px;
+  border-radius: 999px; border: 1px solid var(--border);
+  background: var(--panel); color: var(--text);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .18);
+  -webkit-tap-highlight-color: transparent;
+}
+#chat-jump[hidden] { display: none; }
+/* Live model-status row (status.js). IN FLOW between #chat-jump and the
+   composer: it reserves its own height (the log, flex:1, simply shrinks) and
+   vanishes at turn end. Every floating attempt covered transcript text —
+   #chat-jump gets away with zero-net margins only because it's a centered
+   one-liner over dead space; a wide left-aligned status never does.
+   No background/border — it reads as part of the transcript, not a widget.
+   pointer-events: none — a label, never a control. */
+#chat-status {
+  flex: none; display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 1px 6px; margin: 0 14px; padding: 2px 0 10px;
+  color: var(--dim); font-size: 12px; line-height: 1.35;
+  pointer-events: none;
+}
+#chat-status[hidden] { display: none; }
+#chat-status.warn { color: var(--warn); }
+#chat-status.warn .cs-dot { background: var(--warn); }
+.cs-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  align-self: center; flex: none;
+  animation: cs-pulse 1.6s ease-in-out infinite;
+}
+@keyframes cs-pulse { 50% { opacity: .25; } }
+#chat-status-timer { opacity: .7; font-variant-numeric: tabular-nums; }
+#chat-status-sub { flex: 0 0 100%; padding-left: 12px; font-size: 11px; opacity: .8; }
+.msg { margin-bottom: 12px; word-break: break-word; }
+.msg.user { color: var(--accent); white-space: pre-wrap; }
+.msg.user::before { content: "you"; display: block; color: var(--dim); font-size: 11px; margin-bottom: 2px; }
+.msg.agent .md { color: var(--text); }
+.msg.agent::before { content: "Sidekick"; display: block; color: var(--dim); font-size: 11px; margin-bottom: 2px; }
+.msg.error { color: var(--bad); white-space: pre-wrap; }
+.msg.system { color: var(--dim); font-size: 12px; text-align: center; font-style: italic; }
+.md p { margin: 0 0 8px; }
+.md p:last-child { margin-bottom: 0; }
+.md pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; overflow-x: auto; }
+.md code { background: var(--code-bg); padding: 1px 4px; border-radius: 4px; font-size: 13px; }
+.md pre code { background: none; padding: 0; }
+.md ul, .md ol { margin: 0 0 8px; padding-left: 20px; }
+.md a { color: var(--accent); }
+/* Wide tables scroll inside the bubble via the .md-table-wrap div renderMd adds. Inherited
+   word-break used to keep GFM cells shrinkable to any width; the phone block at this file's
+   foot floors them (BK-015), so a phone table may overflow and scroll here — as intended.
+   display:block on the table itself broke it: it exits table layout (columns collapse,
+   borders misalign). */
+.md table { border-collapse: collapse; margin: 0 0 8px; font-size: 13px; }
+.md-table-wrap { overflow-x: auto; max-width: 100%; margin: 0 0 8px; }
+.md-table-wrap > table { margin-bottom: 0; } /* the wrap carries the gap */
+.md th, .md td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+.md th { background: var(--panel-2); font-weight: 600; }
+
+/* ---- thinking strips (streamed model reasoning, quasi-hidden) ---- */
+/* D2 (BK-030): the strip is ONE fixed-height row, streaming or done — the 44 px header. While
+   thinking streams its preview slot holds a skeleton (two shimmer lines) instead of the old
+   growing 3-line live tail; at the end the same row reads "Thought for Ns" + a one-line
+   preview, so nothing collapses when thinking ends. */
+.think { margin: 4px 0 8px; font-size: 13px; }
+.think-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: 0; color: var(--dim); cursor: pointer;
+  padding: 4px 2px; min-height: 44px; font: inherit; font-size: 13px; text-align: left;
+  -webkit-tap-highlight-color: transparent;  /* :active below is the tap feedback */
+}
+.think-glyph { color: var(--accent); opacity: .6; flex: 0 0 auto; }
+.think-label { flex: 0 0 auto; font-weight: 600; }
+.think-preview {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--dim); opacity: .75; font-style: italic;
+}
+.think.streaming .think-preview { display: none; }  /* the skeleton holds the slot */
+.think-head .chev { flex: 0 0 auto; transition: transform var(--acc-dur) var(--acc-ease); color: var(--dim); }
+.think.open .think-head .chev { transform: rotate(180deg); }
+
+/* Skeleton loading preview: says "reasoning is arriving" without showing raw text, at a
+   height that never changes. Faint dim lines swept toward the accent — the label's own
+   dim→accent shimmer, at the same speed, so the row reads as one loading state. */
+.think-skel {
+  flex: 1; min-width: 0; max-width: var(--skel-max-w);
+  display: flex; flex-direction: column; gap: var(--skel-gap);
+}
+.think-skel > span {
+  display: block; height: var(--skel-line-h); border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--dim) 16%, transparent) 25%,
+    color-mix(in srgb, var(--accent) 34%, transparent) 50%,
+    color-mix(in srgb, var(--dim) 16%, transparent) 75%);
+  background-size: 200% 100%;
+  animation: think-shimmer var(--skel-dur) linear infinite;
+}
+.think-skel > span + span { width: var(--skel-short); }
+
+/* Shimmer on the label while streaming (skeleton-load feel). */
+.think.streaming .think-label {
+  background: linear-gradient(90deg, var(--dim) 25%, var(--accent) 50%, var(--dim) 75%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: think-shimmer var(--skel-dur) linear infinite;
+}
+@keyframes think-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Accordion (BK-030): the thinking body and the pill drawer open and close by animating their
+   wrapper's grid row 0fr <-> 1fr (interpolate-size is not in Safari). The content element's
+   `hidden` stays the ONE open/closed state — thinking.js, pills.js and the probes all read
+   it — but here it no longer means display:none: the 0fr row clips the content, and
+   visibility drops it from VoiceOver and find-in-page once the close has finished (the
+   delayed visibility transition; an open turns it visible at once). */
+.acc { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--acc-dur) var(--acc-ease); }
+.acc:has(> .acc-in > [hidden]) { grid-template-rows: 0fr; }
+.acc-in { min-height: 0; overflow: hidden; }
+.acc:has(> .acc-in > [hidden]) > .acc-in { visibility: hidden; transition: visibility 0s linear var(--acc-dur); }
+.acc-in > [hidden] { display: block; }
+
+.think-body {
+  color: var(--dim); white-space: pre-wrap; word-break: break-word;
+  border-left: 2px solid var(--border); margin-left: 6px; padding: 4px 0 4px 14px;
+  font-size: 12.5px;
+}
+.think-text { --clip-h: var(--clip-think); }
+
+/* "Show all" (BK-031, D3): long bodies flow at full height in the transcript — NO inner
+   scroller (one trapped iOS swipes; a wheel over it never chained to #chat-log). Past
+   its cap a body is clipped under a fade, a button below it (showall.js measures).
+   `overflow: clip`, not hidden: hidden is still a scroll container (focus or
+   find-in-page could scroll it out of its preview); clip is not. */
+.clip { overflow: clip; }
+.clip:not(.expanded) { max-height: var(--clip-h); }
+.clip.clipped {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 3em), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 3em), transparent);
+}
+.show-all {
+  display: block; background: none; border: 0; padding: 4px 2px; min-height: 44px;
+  color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 600;
+  white-space: normal; cursor: pointer; text-align: left;
+  -webkit-tap-highlight-color: transparent;  /* :active below is the tap feedback */
+}
+.show-all[hidden] { display: none; }
+.show-all:active { opacity: .6; }
+
+/* ---- tool pills (clustered tool use + shared detail drawer) ---- */
+.pill-row { display: flex; flex-wrap: wrap; gap: 0 6px; margin: 2px 0 10px; align-items: center; }
+.pill {
+  background: none; border: 0; padding: 8px 0;   /* transparent padding → 44px hit box */
+  min-height: 44px; cursor: pointer; font: inherit;
+  -webkit-tap-highlight-color: transparent;  /* :active below is the tap feedback */
+}
+.pill-face {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 10px; font-size: 12.5px; color: var(--dim); line-height: 1.3;
+  transition: border-color .2s ease, background .2s ease;
+}
+.pill-name {
+  color: var(--text); font-weight: 600; max-width: 40vw;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; }
+.pill.running .pill-dot { animation: chip-pulse 1.3s ease-in-out infinite; }
+@keyframes chip-pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+.pill.done .pill-dot { background: var(--ok); animation: none; }
+.pill.done .pill-status { color: var(--ok); }
+.pill.done .pill-face { animation: pill-pop .25s ease; }
+@keyframes pill-pop { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+/* The pill currently shown in the drawer. */
+.pill[aria-expanded="true"] .pill-face { border-color: var(--accent); background: var(--panel-2); }
+/* Errors stay LOUD — filled, with text ("✗ failed"), not hue-only. */
+.pill.error .pill-face { border-color: var(--bad); background: var(--bad); }
+.pill.error .pill-name, .pill.error .pill-status { color: var(--on-strong); }
+.pill.error .pill-dot { background: var(--on-strong); animation: none; }
+/* Pressed state for every transcript tappable: WebKit's default tap highlight (a dark
+   rgba(0,0,0,.4) square) is off on each of them, so this dim is the tap feedback. Opacity,
+   not background: .pill-face fades background over .2s, which a quick tap never shows.
+   iOS only fires :active under a touchstart listener — follow.js's on #chat-log is it. */
+.md a, .md summary { -webkit-tap-highlight-color: transparent; }
+.pill:active .pill-face, .think-head:active, .md a:active, .md summary:active { opacity: .6; }
+
+.pill-acc { flex-basis: 100%; }                  /* the drawer's accordion: full width, below the pills */
+.pill-detail {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 10px; font-size: 13px; margin-top: 2px;
+}
+.pill-detail-body { --clip-h: var(--clip-drawer); }
+.pill-detail.error-open { border-color: var(--bad); border-left: 4px solid var(--bad); }
+.pill-detail .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin: 4px 0 2px; }
+.pill-detail pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin: 0 0 6px; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
+.pill-detail .truncated { color: var(--dim); font-size: 12px; font-style: italic; }
+
+.truncated-chip {
+  background: var(--panel); border: 1px solid var(--warn); color: var(--warn);
+  border-radius: 10px; padding: 8px 12px; margin: 6px 0 12px;
+  font-size: 13px; font-weight: 600;
+}
+
+/* sr-only: present for assistive tech, invisible on screen. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---- approval pop-out (single surface for ALL in-chat approvals) ---- */
+#approval-modal {
+  position: fixed; left: 0; right: 0; top: 0; height: 100%;
+  background: rgba(0,0,0,.45); display: flex; align-items: center;
+  justify-content: center; padding: 16px; z-index: 50;
+}
+#approval-modal[hidden] { display: none; }
+/* Neutral by default. Flex column so ONLY .modal-fields scrolls — the action
+   buttons stay pinned and on-screen even for a long email body (otherwise a
+   tall card scrolls as one block and pushes Confirm/Approve off the bottom). */
+.modal-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; width: 100%; max-width: 440px;
+  max-height: 100%; display: flex; flex-direction: column; box-shadow: var(--shadow);
+}
+/* Subtle red cue for outward/destructive only. */
+.modal-card.outward { border-top: 3px solid var(--risk-outward); }
+.modal-head { font-weight: 700; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.approval-count { color: var(--dim); font-size: 12px; font-weight: 400; margin-left: auto; }
+#am-note { color: var(--risk-outward); font-size: 12px; margin: 6px 0 10px; flex: 0 0 auto; }
+#am-note[hidden] { display: none; }
+/* Origin of the request and why the policy engine paused it. */
+.modal-source { font-size: 13px; margin: 8px 0 0; flex: 0 0 auto; }
+.modal-why { color: var(--dim); font-size: 12px; margin: 4px 0 8px; flex: 0 0 auto; }
+.modal-source[hidden], .modal-why[hidden] { display: none; }
+/* Amber cue: this approval was instigated by watched content (an email), not Tom. */
+.chip-watch {
+  background: var(--panel); border: 1px solid var(--warn); color: var(--warn);
+  border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 600;
+}
+.modal-fields { font-size: 14px; flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.modal-fields > div { margin: 3px 0; word-break: break-word; }
+.modal-actions { display: flex; gap: 10px; margin-top: 14px; flex: 0 0 auto; }
+.modal-actions button {
+  flex: 1; border: 0; border-radius: 10px; padding: 12px; font-weight: 600;
+  font-size: 15px; cursor: pointer; min-height: 48px;
+}
+.modal-actions .confirm-send { background: var(--risk-outward); color: var(--on-strong); }
+.modal-actions .approve-accent { background: var(--accent); color: var(--accent-ink); }
+.modal-actions .quiet { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+
+/* ---- empty-chat greeting ---- */
+#tab-chat { position: relative; }
+#chat-greeting {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  pointer-events: none;  /* purely decorative — taps fall through */
+  color: var(--accent);
+  transition: opacity .6s ease;
+}
+/* display:flex above beats the UA's [hidden]{display:none} — restate it, or
+   the JS instant-hide (hidden=true) has no visual effect. */
+#chat-greeting[hidden] { display: none; }
+#chat-greeting.fade { opacity: 0; }
+#chat-greeting svg { width: 93px; height: 60px; }
+#chat-greeting p { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: .3px; color: var(--dim); }
+
+/* ---- chat form ---- */
+#chat-form {
+  display: flex; gap: 8px; align-items: flex-end; min-width: 0; padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+@media (prefers-reduced-motion: reduce) {
+  #chat-greeting { transition: none; }
+  /* Motion is the only "running"/"streaming" cue otherwise — give static ones. */
+  .pill.running .pill-dot { animation: none; }
+  .pill.running .pill-face { border-color: var(--accent); }
+  .pill.done .pill-face { animation: none; }
+  .think.streaming .think-label {
+    animation: none; background: none;
+    -webkit-background-clip: initial; background-clip: initial;
+    color: var(--accent);
+  }
+  /* Static skeleton; accordions and the chevron snap (0s: no transition runs at all). */
+  .think-skel > span { animation: none; background: color-mix(in srgb, var(--dim) 20%, transparent); }
+  #chat-log { --acc-dur: 0s; }
+}
+
+#chat-input {
+  flex: 1; min-width: 0; background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
+  font: inherit; font-size: 16px; resize: none;  /* 16px: stops iOS Safari focus-zoom */
+  /* Autosize (app.js) grows the field as text wraps; these clamp it. */
+  min-height: 66px;   /* 2 rows: 2×(16px×1.45) + 18px padding + 2px border — keep in sync with #chat-send/#chat-mic height */
+  max-height: 160px;  /* ~6 rows; fixed px, NOT dvh — iOS keeps dvh full-size when the keyboard opens */
+  overflow-y: auto;
+  overscroll-behavior: contain;  /* inner scroll must not chain to the page (iOS rubber-band) */
+}
+button[type="submit"], .cards button {
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px;
+  padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+/* Send matches the field's REST height (fixed 66px, bottom-anchored via the form's
+   align-items: flex-end) — it must NOT stretch, or it becomes a 160px slab when the
+   autosizing field grows. Sized ~30% up from the 16px controls (bigger tap target)
+   without touching the shared .cards/row-form buttons; the mic width-syncs to it in app.js. */
+ #chat-send { height: 66px; font-size: 16px; padding: 9px 27px; }
+/* One button, two modes (app.js setSendMode): a quiet grey "Stop" while a turn
+   is live — the mode swap is the cue, not alarm colour. --stop-bg per theme.
+   Height/padding unchanged — the mic width-sync keeps following it. */
+#chat-send[data-mode="stop"] { background: var(--stop-bg); color: var(--text); }
+button:disabled { opacity: .5; }
+
+/* Mic (dictation) — hidden until app.js feature-detects recording support.
+   Width is synced to Send's measured width in app.js so the two always match. */
+#chat-mic { height: 66px; font-size: 21px; }
+#chat-mic.recording {
+  color: var(--bad); border-color: var(--bad);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--bad) 30%, transparent); }
+}
+/* Transcribing: amber (distinct from the red recording pulse) on the mic,
+   plus a soft glow on the input while segments stream into it. */
+#chat-mic.transcribing {
+  color: var(--warn); border-color: var(--warn);
+  animation: mic-busy 1.2s ease-in-out infinite;
+}
+@keyframes mic-busy {
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--warn) 30%, transparent); }
+}
+#chat-input.dictating { animation: input-glow 1.2s ease-in-out infinite; }
+@keyframes input-glow {
+  50% {
+    border-color: var(--warn);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 18%, transparent);
+  }
+}
+
+/* Reduced-motion fallbacks for the mic/input states. MUST stay AFTER the
+   base .recording/.transcribing/.dictating rules above: the selectors tie on
+   specificity, so source order decides — placed earlier (e.g. in the shared
+   reduced-motion block up top) the base rule wins and the animation still
+   runs. Static color is the "busy" cue instead. */
+@media (prefers-reduced-motion: reduce) {
+  #chat-mic.recording { animation: none; background: var(--bad); color: var(--on-strong); }
+  #chat-mic.transcribing { animation: none; background: var(--warn); color: var(--on-strong); }
+  #chat-input.dictating { animation: none; border-color: var(--warn); }
+  /* In THIS late block, not the first one — equal-specificity rules in earlier
+     @media blocks lose to later ones regardless of the media condition. */
+  .cs-dot { animation: none; }
+}
+
+/* Phone-only. Composer: trim the buttons' horizontal bulk (~60%); their fixed 66px
+   height keeps tap targets tall. 600px can't match the iPad (narrowest is 744px CSS
+   width). The table sizing below needs the same gate — desktop and iPad keep the
+   sizing they shipped with (BK-015). */
+@media (max-width: 600px) {
+  #chat-send { font-size: 14px; padding: 9px 16px; }
+  #chat-mic { font-size: 18px; padding: 5px 6px; }
+  /* BK-015: `.msg`'s word-break: break-word inherits into cells, and that alias is a
+     break opportunity for INTRINSIC sizing — a cell's min-content is ONE glyph, so auto
+     table layout shredded short columns (measured: "Pri" stacked P/r/i, 12 collapsed
+     cells at 390px WebKit) and .md-table-wrap's scroll never engaged because the table
+     shrank to fit. So: word-level sizing + a 3em column floor, inside the phone gate so
+     iPad/desktop keep the sizing above. Long code/URL tokens still break — `anywhere`,
+     not `break-word`, because only `anywhere` also shrinks their min-content, letting
+     them wrap instead of forcing their column past the bubble (criterion 3). */
+  .md th, .md td { word-break: normal; overflow-wrap: break-word; min-width: 3em; }
+  .md th code, .md td code, .md th a, .md td a { overflow-wrap: anywhere; }
+}
+

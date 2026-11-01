@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- jsunit tier runner page — tests/fixtures/jsunit (plan bk-019-run-lifecycle
+     Step 2, the minimal BK-020 tier). Served from a scratch mirror over
+     http://: ES modules reject file:// (.claude/gotchas.md, "Headless browser
+     check").
+
+     The page is DELIBERATELY bare — no index.html DOM fixture. This tier
+     drives DOM-free modules (replay.js, runstate.js: the design doc §2.6
+     keeps runstate renderer-free precisely so it runs here);
+     anything that touches the page at import time (transcript.js et al)
+     belongs to the probe tier (tests/fixtures/pwa_resume).
+
+     run_jsunit.py parses the JSUNIT-RESULTS block out of the
+     chrome-headless-shell --dump-dom output. The inline handler below is the
+     page's own red path: a module that throws at import never reaches
+     runAll(), so without it the block would sit at "(running)" (harness
+     error, exit 2) instead of naming the error as a red check (exit 1). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>sidekick jsunit</title>
+</head>
+<body>
+<pre id="jsunit-results">JSUNIT-RESULTS-BEGIN
+(running)
+JSUNIT-RESULTS-END</pre>
+<script>
+// The admission rule ENFORCED, not just documented: rAF callbacks never fire
+// under --virtual-time-budget (gotchas), so the budget this tier keeps would
+// turn an rAF-paced module into a silent no-op that paints nothing and still
+// reports PASS. Any rAF use is therefore a loud page error — rAF-paced code
+// belongs to tests/fixtures/pwa_resume (a probe, not a unit test). Defined
+// here, in a classic script, BEFORE the module tree evaluates.
+window.requestAnimationFrame = function () {
+  throw new Error("jsunit tier: requestAnimationFrame callbacks never fire " +
+    "under --virtual-time-budget — rAF-paced code belongs in the probe tier " +
+    "(tests/fixtures/pwa_resume), not the jsunit tier");
+};
+
+// One-shot page-level red reporter. Gated on the "(running)" sentinel so a
+// late error can never overwrite a suite that already reported.
+function skPageFail(reason) {
+  var pre = document.getElementById("jsunit-results");
+  if (pre.textContent.indexOf("(running)") === -1) return;
+  pre.textContent = "JSUNIT-RESULTS-BEGIN\nFAIL page: " +
+    String(reason).replace(/\s+/g, " ").slice(0, 300) +
+    "\nJSUNIT-RESULT: FAIL\nJSUNIT-RESULTS-END";
+}
+window.addEventListener("error", function (e) { skPageFail(e.message); });
+window.addEventListener("unhandledrejection", function (e) {
+  skPageFail((e.reason && e.reason.message) || e.reason);
+});
+</script>
+<!-- The REAL markdown pipeline, as index.html loads it (classic scripts,
+     before the module tree, so dom.js's marked.use() del override applies).
+     Without these renderMd falls back to esc() and stream_md.test.js's
+     goldens pass vacuously — that test's first check pins they loaded. -->
+<script src="/marked.min.js"></script>
+<script src="/purify.min.js"></script>
+<script type="module" src="/suite.js"></script>
+</body>
+</html>

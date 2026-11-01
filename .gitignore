@@ -1,0 +1,60 @@
+# Secrets & credentials
+.env
+*.env
+credentials.json
+token.json
+# Broad on purpose (pinned in test_conventions): ANY *token*.json silently won't commit.
+*token*.json
+.secrets/
+*.pem
+*.key
+
+# Databases — harness.db normally lives outside the repo, but a stray copy or
+# a backup landing in the tree must never be committable.
+*.db
+*.sqlite
+*.sqlite*
+
+# Persistent Chrome profile for the browser tools (cookies, logged-in sessions)
+.chrome-agent-profile/
+
+# Per-checkout Claude Code config, and the owner-specific half of the publish
+# leak patterns. Listed here mainly to protect the PUBLIC snapshot, which
+# inherits this file: those paths are machine-specific and must never be swept
+# into its first commit. (.claude/settings.json is already tracked here, so
+# this is a no-op for it in this repo — it is denylisted from the snapshot.)
+.claude/settings.local.json
+.claude/party.json
+.claude/party/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# uv
+.uv/
+
+# OS / editor
+.DS_Store
+*.swp
+*.lnk
+.idea/
+.vscode/
+
+# sandbox_run workspace (model-generated, mounted at /work) — never commit its output
+scratch/sandbox/
+
+# agent downloads (Drive/Gmail attachments land here) — never commit
+scratch/downloads/
+
+# personal documents dropped in for analysis — never commit
+*.pdf
+
+# everything else under scratch/ is generated or personal working material
+scratch/

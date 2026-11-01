@@ -1,0 +1,184 @@
+/* panels — split from style.css. Light default + dark tokens live in base.css. */
+
+/* ---- cards ---- */
+/* overflow-x: hidden — a VERTICAL-only scroller. `overflow-y: auto` alone
+   makes overflow-x compute to `auto` too, so any card wider than the pane
+   turns the list into a sideways scroller and a diagonal swipe slides the
+   cards off screen (the 2026-10-16 memory 'swing'; content-specific, which is
+   why Triggers/Connections with the same layout never showed it). */
+.cards { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 14px; }
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+/* word-break mirrors .meta: .title is a FLEX container, so the fact text is an
+   anonymous flex item with min-width:auto — it can't shrink below min-content,
+   and min-content of an unbreakable token (URL, long identifier) is the whole
+   token, which blows the card past the pane. Breaking makes min-content small. */
+.card .title { font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; word-break: break-word; }
+.card .meta { color: var(--dim); font-size: 13px; margin: 4px 0 8px; word-break: break-word; }
+/* Approval origin + why-it-parked lines on pending/history cards. */
+.card .meta .src { color: var(--text); margin-top: 6px; }
+.card .meta .why { font-size: 12px; margin-top: 2px; }
+/* Generic approval-args rendering (fallback for un-templated tools). */
+.arg-pre {
+  background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px; margin: 2px 0 6px; font: 12px/1.4 ui-monospace, monospace;
+  white-space: pre-wrap; word-break: break-word;
+}
+.arg-long summary { cursor: pointer; color: var(--dim); word-break: break-word; }
+.card .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card button.deny { background: var(--bad); color: var(--on-strong); }
+.card button.quiet { background: var(--panel-2); color: var(--dim); border: 1px solid var(--border); }
+.empty { color: var(--dim); padding: 24px; text-align: center; }
+.card.subrun { margin-left: 22px; border-left: 3px solid var(--accent); }
+
+.row-form { display: flex; gap: 8px; padding: 14px 14px 0; flex-wrap: wrap; align-items: center; }
+.row-form input[type="text"], .row-form input:not([type]) {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 16px;  /* stops iOS focus-zoom */
+}
+#memory-q { flex: 1; min-width: 160px; }
+.row-form label { color: var(--dim); font-size: 13px; }
+
+pre.trace {
+  background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px; font-size: 12px; overflow-x: auto; max-height: 300px; white-space: pre-wrap;
+}
+
+/* ---- risk badges (themed) ---- */
+.risk { color: var(--on-strong); border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+.risk.read { background: var(--risk-read); }
+.risk.local { background: var(--risk-local); }
+.risk.outward { background: var(--risk-outward); }
+.risk.destructive { background: var(--risk-destructive); }
+.risk.unknown { background: var(--dim); }
+
+/* ---- tools security ---- */
+.tier-group { margin-bottom: 16px; }
+.tier-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.tier-head .tier-note { color: var(--dim); font-size: 12px; font-weight: 400; }
+.tool-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tool-row:last-child { border-bottom: 0; }
+.tool-row .tool-meta { flex: 1; min-width: 0; }
+.tool-row .tn { font-weight: 600; }
+.tool-row .td { color: var(--dim); font-size: 12px; }
+.tool-row .net { color: var(--warn); font-size: 11px; }
+.tool-row .locked { color: var(--dim); font-size: 12px; }
+/* Read-only rows: a stated "runs by itself" fact, tinted ok-ish, not lock-grey. */
+.tool-row .locked.auto { color: var(--ok); }
+/* Tier note used standalone (read-only fold), not just inside .tier-head. */
+.tier-group details > .tier-note { color: var(--dim); font-size: 12px; margin: 6px 0 4px; }
+
+/* ---- connections ---- */
+.explainer {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 12px; color: var(--text); font-size: 13px;
+}
+.conn-scopes { margin-top: 8px; }
+.scope-row { padding: 8px 0; border-top: 1px solid var(--border); }
+.scope-row .sc-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.scope-row .sc-cap { color: var(--text); font-size: 13px; margin: 2px 0; }
+.scope-row .sc-tools { color: var(--dim); font-size: 12px; word-break: break-word; }
+.scope-row .sc-warn { color: var(--risk-outward); font-size: 12px; }
+details.conn > summary { cursor: pointer; color: var(--accent); font-size: 13px; margin-top: 6px; }
+/* Bottom margin keeps the summary tap-target clear of the Fire now button. */
+details.trigger-detail { margin-bottom: 14px; }
+details.trigger-detail > summary { cursor: pointer; color: var(--accent); font-size: 13px; margin-top: 6px; padding: 4px 0; }
+.trigger-prompt { color: var(--dim); font-size: 13px; padding: 6px 0 2px; word-break: break-word; }
+.manage-link { color: var(--accent); font-size: 13px; align-self: center; text-decoration: none; }
+
+/* Scope "breadth" tiers — deliberately a SEPARATE visual vocabulary from the
+   action-risk chips (.risk.*), so a granted scope doesn't read as "danger". */
+.scope-tier {
+  font-size: 11px; font-weight: 600; border-radius: 6px; padding: 1px 7px;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--dim);
+}
+.scope-tier.broad { color: var(--text); border-color: var(--accent); }
+.scope-tier.med { color: var(--dim); }
+.scope-tier.low { color: var(--dim); }
+.scope-tier.unknown { color: var(--warn); border-color: var(--warn); }
+.scope-row.missing { opacity: .8; }
+.sc-missing { color: var(--warn); font-size: 11px; }
+
+/* Tools-security: granted state (distinct from risk chips) + tap targets. */
+.granted { color: var(--ok); font-weight: 600; font-size: 12px; }
+.tool-row button { min-height: 36px; }
+.tool-row button.icon { min-width: 44px; font-size: 18px; line-height: 1; padding: 4px 8px; }
+.tier-group > details > summary { cursor: pointer; color: var(--dim); padding: 4px 0; }
+
+/* Disabled trigger card reads as muted, not identical to an active one. */
+.card.off { opacity: .6; }
+
+/* Background-run toast: a run started while the user is mid-conversation —
+   tappable pill, never steals the screen. */
+.run-toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 52px);  /* just below the header */
+  left: 50%; transform: translateX(-50%);
+  max-width: min(90vw, 420px);
+  padding: 10px 16px; border-radius: 12px;
+  background: var(--panel-2); border: 1px solid var(--accent); color: var(--text);
+  font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+  cursor: pointer; z-index: 50;
+}
+
+/* ---- schedules panel (accordion create/edit form, badges, tool picker) ---- */
+.schedule-acc {
+  margin: 14px 14px 0;
+  /* The open create/edit form runs taller than a phone pane, and the pane no
+     longer scrolls (one-touch-scroller rule, base.css) — so the form caps and
+     scrolls ITSELF. It's a sibling of .cards, never an ancestor, so its own
+     scroll layer can't parallax the list. Cost: while editing, .cards shrinks
+     toward zero; closing the accordion restores the list. */
+  max-height: calc(100% - 14px); overflow-y: auto; overscroll-behavior: contain;
+}
+.schedule-acc > summary {
+  cursor: pointer; font-weight: 600; padding: 4px 0;
+  list-style-position: inside;
+}
+.schedule-acc[open] > summary { margin-bottom: 12px; }
+.schedule-form { display: flex; flex-direction: column; gap: 12px; }
+.sf-field { display: flex; flex-direction: column; gap: 4px; color: var(--dim); font-size: 13px; }
+.sf-field input, .sf-field select, .sf-field textarea {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 16px;  /* stops iOS focus-zoom */
+}
+.sf-field textarea { resize: vertical; }
+.sf-check { color: var(--dim); font-size: 13px; }
+.sf-label { color: var(--dim); font-size: 13px; }
+.sf-note { color: var(--dim); font-size: 12px; }
+.sf-note.bad, .sf-error { color: var(--bad); font-size: 12px; }
+.sf-error:empty { display: none; }
+.sf-required { color: var(--warn); font-size: 11px; }
+.sf-autonomy { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px 10px; }
+.sf-autonomy legend { color: var(--dim); font-size: 13px; padding: 0 4px; }
+.sf-autonomy label { margin-right: 14px; font-size: 14px; }
+.autonomy-badge {
+  margin-left: 8px; border-radius: 6px; padding: 1px 7px;
+  font-size: 11px; font-weight: 600; vertical-align: middle;
+}
+.autonomy-badge.auto { background: var(--risk-outward); color: var(--on-strong); }
+.tool-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tool-chip {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 1px 7px; font-size: 11px; color: var(--dim);
+}
+.tool-chip.more { border-style: dashed; }
+.tool-picker {
+  max-height: 45vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+}
+.tp-group { margin-bottom: 8px; }
+.tp-head { margin: 4px 0; }
+/* Comfortable tap targets: 16px text + 20px checkboxes (iPad). */
+.tp-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 16px; min-height: 32px; }
+.tp-row input[type="checkbox"] { width: 20px; height: 20px; flex: none; }
+.tp-row .tn { font-weight: 500; }
+.card button.danger { color: var(--bad); border-color: var(--bad); }
+/* Always-ask tier badge (schedule self-edits, tools-security panel). */
+.risk.always { background: var(--accent); }

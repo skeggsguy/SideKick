@@ -1,0 +1,2 @@
+The secret passphrase is: blue-narwhal-42.
+This file exists only to verify the agent can read local files.

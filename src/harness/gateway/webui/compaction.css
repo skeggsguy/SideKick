@@ -1,0 +1,25 @@
+/* compaction (compaction.js) — split from chat.css, which sits at the 420
+   LOC cap (tests/test_conventions.py) and has no room for this rule plus
+   Step 5's reload-seam growth. Tokens (incl. --accent) come from base.css. */
+
+/* The seam: where the conversation middle was summarized into the frozen
+   checkpoint. Blue rule = var(--accent), the user-rows' blue — a boundary
+   in the chat, not a message. The fade-in only ever fires on the live
+   mid-turn paint (a reload paints the seam synchronously with the replay). */
+.compaction-seam {
+  height: 2px;
+  margin: 14px 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: seam-in 0.3s ease;
+}
+@keyframes seam-in {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* LATE block, per the chat.css mic-note pattern: the override ties the
+     base rule on specificity, so source order decides — it must come AFTER
+     it. With motion off, the static rule itself is the cue. */
+  .compaction-seam { animation: none; }
+}

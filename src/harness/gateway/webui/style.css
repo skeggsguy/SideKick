@@ -1,0 +1,5 @@
+/* RETIRED 2026-10-02 — this file was split three ways; index.html now links:
+   base.css   design tokens, dark mode, header, sub-nav
+   chat.css   transcript, thinking, tool pills, modal, composer
+   panels.css cards, badges, tools-security, connections, schedules
+   The original lives in git history (pre-split style.css, 601 lines). */
