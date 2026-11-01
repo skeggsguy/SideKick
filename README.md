@@ -1,53 +1,50 @@
-<img src="assets/sidekick-mark.svg" alt="" width="124" align="left" hspace="16">
-
 # Sidekick
 
-**A proactive AI sidekick on your own Mac: a local model does the work, and the cloud only when you
-ask for it.**
+**Your own AI assistant, on your own Mac. It works while you sleep, remembers what matters to you,
+and asks your phone before it sends, books or deletes anything.**
 
-<br clear="left">
+Sidekick is a personal AI assistant that does real jobs, not just chat. Every week it combs the
+property sites, reads the new listings properly and leaves a short report. It plans a holiday, keeps
+the itinerary in your calendar and watches your inbox for changes. It finds a restaurant table and
+drives the booking site in a real Chrome. It reads a stack of contracts and statements and tells you
+what differs. And it says good morning by name.
 
-Sidekick is one daemon on a Mac mini. You chat with it from an iPad, an iPhone or a terminal, and it
-also works when you're not there. A schedule or a new email wakes it up, it does the job with real
-tools (web search, a real Chrome, Gmail and Calendar, files, maps), and it asks your phone before
-anything that sends, books or deletes. It remembers what it learns about you, so it gets more useful
+Talk to it from an iPad, an iPhone or a terminal, or leave it alone. A schedule or a new email wakes
+it, and it gets on with the job: web search, a real browser, Gmail and Calendar, files, maps and
+photos. Every tool call passes a policy gate. Reading runs on its own; anything that sends, books or
+deletes waits for a tap on your phone. It remembers what it learns about you, so it gets more useful
 the more you use it.
 
-Since 2 October 2026 a local model, Qwen3.8-Flash-Next running on
-[Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd), has done nearly all of that work on
-the Mac itself. For the four months before that it ran on Claude Sonnet, so the numbers below show
-both: what it cost in the cloud, and what it costs now.
+It runs on your Mac, on a local model: Qwen3.8-Flash-Next on
+[Flash-Next SSD](https://github.com/skeggsguy/Flash-next-ssd). Sidekick loads tools only when a task
+needs them and keeps its prompt steady, so a local model can carry long jobs. My last month of it
+cost $0.68 in cloud fees. When a turn needs more, Claude Sonnet is one pick away in the chat, and
+it's the one I recommend.
 
-It is the assistant I run every day, published as it is. It was built almost entirely with
-[Claude Code](https://claude.com/claude-code), and the working files that built it are part of the
-repo ([How it's built](#how-its-built)).
+It's the assistant I run every day, published as it is. It was built almost entirely with
+[Claude Code](https://claude.com/claude-code), and the files that built it are in the repo
+([How it's built](#how-its-built)).
 
 <p align="center"><img src="assets/how-it-works.svg" width="760" alt="How Sidekick works: you, a schedule or a watcher wakes it; the agent loop plans with a local model, every tool call passes the policy gate, and anything that sends, books or deletes waits for your approval; one model per job; everything is remembered in one SQLite file"></p>
 
 ## Headline numbers
 
-From the runs table on my Mac mini, 12 June to 1 November 2026. Every run is timed, counted and
-costed as it happens; `uv run harness runs summary` shows yours.
+Five months on my Mac mini, 12 June to 1 November 2026. Every run and every tool call is logged as it
+happens; `uv run harness runs summary` shows yours.
 
-| | Cloud era (12 Jun – 1 Oct) | Local era (2 Oct – 1 Nov) |
-|---|---|---|
-| **Runs** | 1,765 (121 of them early local trials) | 641 |
-| **Model** | Claude Sonnet 5 and 4.6 | local Qwen for 98% of runs; Sonnet for the 11 turns I picked it |
-| **Cloud spend** | **$123** ($14–59 a month) | **$0.68** |
-| **Per run** | about $0.075 | nothing but electricity |
-
-**As a guide to cloud costs:** at the cloud era's rate, the 630 local runs since 2 October would have
-cost about $47 on Sonnet. That's probably a floor: the Mac read twice as many input tokens in October
-(82M) as in September (41M), and tokens are no longer billed.
-
-| Since June | |
+| | |
 |---|---|
-| **Runs** | 2,406, of which 672 ran in the background (a schedule or an email started them) |
-| **Days with background work** | 140 |
-| **Longest unattended scheduled run** | 4 h 20 min |
-| **Tool calls through the policy gate** | 9,753: 8,619 ran on their own, 1,064 I approved, 70 I denied |
-| **Memory** | 107 facts about me and 1,106 episode summaries |
-| **Offline tests** | over 1,500, with no network and no API keys |
+| **Works while you sleep** | **672** background runs, started by a schedule, an email or a task it handed off, on 142 of 143 days; 230 of them between 10 pm and 7 am |
+| **Gets on with it** | **598 of 623** finished background runs needed nothing from me |
+| **Long jobs** | **1 h 35 min** and 50 tool calls in the longest scheduled run that finished; 80 min and 52 calls on the local model |
+| **Asks before it acts** | **0** sends, invites, browser tasks or deletes on its own: 123 asked first, 113 approved, 10 refused |
+| **Costs almost nothing** | **$0.68** in cloud fees since 2 October, across 641 runs; the Mac read 85M tokens at no charge |
+| **Remembers you** | **107** facts and 1,106 conversation summaries; 99 of those facts were pulled into a conversation in the last month |
+| **Every call gated** | **9,753** tool calls through the policy gate: 8,619 ran on their own, 1,064 I approved, 70 I refused |
+
+"Asks before it acts" counts every send, calendar invite, browser task and delete. A browser task is
+approved once, for one site and a set number of actions; inside it, clicks and typing run on their
+own, and anything off that site or past the budget asks again.
 
 ## What it does
 
@@ -81,8 +78,9 @@ answer.
 ### A real browser
 
 Some sites only work in a browser. `browser_fetch` reads them through a persistent Chrome, and
-`browser_delegate` hands a task to a browser sub-agent that clicks, types and fills forms. Every click
-names the element and the site in the approval it asks for. All of its traffic goes through a local
+`browser_delegate` hands a task to a browser sub-agent that clicks, types and fills forms. You approve
+the task once, for one site and a set number of actions. Inside that, it works on its own; going off
+the site or past the budget asks again, naming the element and the site. All of its traffic goes through a local
 egress proxy that refuses private network addresses.
 
 ### Pictures
@@ -119,7 +117,7 @@ combines the two:
 |---|---|---|
 | Read-only | search, read an email | runs at once |
 | Changes something local | edit a file in the work area | allowlist, or ask you |
-| Outward | send an email, book a table | always asks you; can never be allowlisted |
+| Outward | send an email, start a browser task | always asks you; can never be allowlisted. A browser task asks once, for one site and a set number of actions |
 | Destructive | delete, trash | always asks you, and is refused outright in unattended runs |
 
 On top of that: anything Sidekick reads (emails, web pages, files, photos) is data, never
@@ -134,8 +132,8 @@ Real jobs, run for months:
 - **A weekly property watch.** It searches the listing sites, reads the new listings properly
   (floor plans, prices, what changed since last week) and sends a short report. A reply to a listing
   waits for my OK.
-- **Restaurant bookings.** It finds a table and drives the booking site in Chrome, and the final
-  click waits for my approval on the phone.
+- **Restaurant bookings.** It finds a table and drives the booking site in Chrome. I approve the
+  task on the phone first: that one site, a set number of clicks.
 - **Holiday planning and management.** It researches options, builds the itinerary, keeps it in the
   calendar, and watches the inbox for changes along the way.
 - **High-volume document work.** Contracts, statements and PDFs, read and compared in batches.
@@ -154,10 +152,27 @@ there, Sidekick says so.
 | **Memory search** | Ollama with `nomic-embed-text` | Nothing: recall falls back to keywords | Ollama, if you have it |
 | **The hard turns** | Claude Sonnet 5, picked per message | None | **Recommended:** add `ANTHROPIC_API_KEY` and a "Sonnet" choice appears in the chat's model picker |
 
+### What it costs
+
+For its first four months Sidekick ran on Claude Sonnet; since 2 October, on the local model. From the
+runs table on my Mac mini, where every run is timed, counted and costed as it happens:
+
+| | Cloud era (12 Jun – 1 Oct) | Local era (2 Oct – 1 Nov) |
+|---|---|---|
+| **Runs** | 1,765 (121 of them early local trials) | 641 |
+| **Model** | Claude Sonnet 5 and 4.6 | local Qwen for 98% of runs; Sonnet for the 11 turns I picked it |
+| **Cloud spend** | **$123** ($14–59 a month) | **$0.68** |
+| **Per run** | about $0.075 | nothing but electricity |
+
+**As a guide to cloud costs:** at the cloud era's rate, the 630 local runs since 2 October would have
+cost about $47 on Sonnet. That's probably a floor: the Mac read twice as many input tokens in October
+(82M) as in September (41M), and tokens are no longer billed.
+
 ## Quick start
 
 **What you need:** an Apple Silicon Mac on macOS 26 or later, [uv](https://docs.astral.sh/uv/), and a
-local model server. A Mac that stays on makes it proactive.
+local model server. The recommended local model wants a 64 GB Mac (48 GB runs it slower) and disk
+space for a 111 GB model. A Mac that stays on makes it proactive.
 
 **1. Install it**
 
@@ -261,6 +276,7 @@ steer it are in the repo as they are, not tidied up afterwards:
 - [`.claude/decisions.md`](.claude/decisions.md): why A over B, one short entry per choice.
 - [`.claude/gotchas.md`](.claude/gotchas.md): the traps that no code owns.
 - [`CHRONICLE.md`](CHRONICLE.md): the story so far, level by level.
+- About 1,500 offline tests: `uv run pytest` needs no network and no API keys.
 
 If you're curious what months of agent-assisted development look like in practice, that's probably
 the most useful thing here.
